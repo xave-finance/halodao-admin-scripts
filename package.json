@@ -2,7 +2,7 @@
   "name": "hardhat-project",
   "scripts": {
     "test": "npx hardhat --network localhost test ",
-    "call:script-test": "npx hardhat run scripts/contractCalls/triggerEpochRewards.ts",
+    "call:script-test": "npx hardhat run scripts/contractCalls/test.ts",
     "recompile": "rm -rf artifacts && rm -rf cache && npx hardhat compile",
     "node": "npx hardhat node"
   },
