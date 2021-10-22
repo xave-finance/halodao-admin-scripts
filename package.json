@@ -3,6 +3,8 @@
   "scripts": {
     "test": "npx hardhat --network localhost test ",
     "call:script-test": "npx hardhat run scripts/contractCalls/test.ts",
+    "call:generate-airdroplist": "npx hardhat run scripts/airdrop-ammv1/1-generate-airdroplist.ts --network mainnet",
+    "call:generate-airdroplist-kovan": "npx hardhat run scripts/airdrop-ammv1/1-generate-airdroplist.ts --network kovan",
     "recompile": "rm -rf artifacts && rm -rf cache && npx hardhat compile",
     "node": "npx hardhat node"
   },
@@ -27,6 +29,8 @@
     "@types/node": "^14.14.37",
     "chai-bignumber": "^3.0.0",
     "dotenv": "^8.2.0",
+    "export-to-csv": "^0.2.1",
+    "firebase": "^7.24.0",
     "hardhat-gas-reporter": "^1.0.4",
     "hardhat-typechain": "^0.3.5",
     "ts-generator": "^0.1.1",
