@@ -3,8 +3,8 @@
   "scripts": {
     "test": "npx hardhat --network localhost test ",
     "call:script-test": "npx hardhat run scripts/contractCalls/test.ts",
-    "call:verify-address": "npx hardhat run scripts/airdrop-ammv1/1-generate-airdroplist.ts --network mainnet",
-    "call:verify-address-kovan": "npx hardhat run scripts/airdrop-ammv1/1-generate-airdroplist.ts --network kovan",
+    "call:generate-airdroplist": "npx hardhat run scripts/airdrop-ammv1/1-generate-airdroplist.ts --network mainnet",
+    "call:generate-airdroplist-kovan": "npx hardhat run scripts/airdrop-ammv1/1-generate-airdroplist.ts --network kovan",
     "recompile": "rm -rf artifacts && rm -rf cache && npx hardhat compile",
     "node": "npx hardhat node"
   },

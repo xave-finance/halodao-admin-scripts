@@ -9,6 +9,7 @@ import * as fs from 'fs'
 
 interface AirdropEntry {
   address: string
+  poolId: string
   totalMigratedxRNBWReward: string
   currentxRNBWReward: string
   totalGasFee: number
@@ -53,20 +54,17 @@ const verifyAddresses = async () => {
     )
 
     // 2 - Verify if pendingRewards in firebase is equal to pendingReward in contract
-    if (data.pendingRewards <= contractPendingReward) {
-      // 3 - calculate totalTxnFees: gasUsed * effectiveGasPrice (gasPrice used + priority fee)
-      const totalGasRefund = await calculateTotalTxnFees(
-        data.txHashes,
-        deployer
-      )
-      // 4 - Push to array for csv export
-      airdropData.push({
-        address: data.userAddress,
-        totalMigratedxRNBWReward: data.pendingRewards,
-        currentxRNBWReward: contractPendingReward,
-        totalGasFee: totalGasRefund
-      })
-    }
+
+    // 3 - calculate totalTxnFees: gasUsed * effectiveGasPrice (gasPrice used + priority fee)
+    const totalGasRefund = await calculateTotalTxnFees(data.txHashes, deployer)
+    // 4 - Push to array for csv export
+    airdropData.push({
+      address: data.userAddress,
+      poolId: data.poolId,
+      totalMigratedxRNBWReward: data.pendingRewards,
+      currentxRNBWReward: contractPendingReward,
+      totalGasFee: totalGasRefund
+    })
   }
 
   // 5 - generateCsv
