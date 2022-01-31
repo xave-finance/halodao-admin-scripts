@@ -1,4 +1,4 @@
-export const curveAbi = [
+export const curveABI = [
   {
     inputs: [
       { internalType: 'address', name: '_aggregator', type: 'address' },

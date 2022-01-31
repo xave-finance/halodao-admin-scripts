@@ -1,11 +1,9 @@
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { formatEther, formatUnits, parseUnits } from 'ethers/lib/utils'
+import { formatEther, formatUnits } from 'ethers/lib/utils'
 import { ExportToCsv } from 'export-to-csv'
 import { ethers } from 'hardhat'
-import { resolve } from 'path'
 import { BPool, V0_START_BLOCK_NUMBER } from '../constants'
-import { bptABI } from '../constants/abi/bpt'
 import * as fs from 'fs'
+import { curveABI } from '../constants/abi/curve'
 
 // TODO: Transform to hardhat tasks
 
@@ -17,7 +15,7 @@ interface v1Stats {
   caller: string
 }
 
-const fetchV0Stats = async () => {
+const fetchV1Stats = async () => {
   const [deployer] = await ethers.getSigners()
   const options = {
     fieldSeparator: ',',
@@ -36,12 +34,11 @@ const fetchV0Stats = async () => {
 
   const xsgdProtocolStats: v1stats[] = []
 
-  const xsgdusdc = new ethers.Contract(BPool['xsgdusdc'], bptABI, deployer)
+  const xsgdusdc = new ethers.Contract(BPool['xsgdusdc'], curveABI, deployer)
 
   const xsgdusdcEventFilter = await xsgdusdc.filters.LOG_SWAP()
 
   const xsgdusdcSwapFee = formatEther(await xsgdusdc.getSwapFee())
-  const thkdusdcSwapFee = formatEther(await thkdusdc.getSwapFee())
 
   const xsgdusdcEvents = await xsgdusdc.queryFilter(
     xsgdusdcEventFilter,
@@ -49,14 +46,7 @@ const fetchV0Stats = async () => {
     14115866
   )
 
-  const thkdusdcEvents = await thkdusdc.queryFilter(
-    thkdusdcEventFilter,
-    V0_START_BLOCK_NUMBER,
-    14115866
-  )
-
   const xsgdusdcEventsArray = xsgdusdcEvents
-  const thkdusdcEventsArray = thkdusdcEvents
 
   xsgdusdcEventsArray.forEach(log => {
     xsgdTotalAmountIn += Number(log.args?.tokenAmountIn)
@@ -77,25 +67,6 @@ const fetchV0Stats = async () => {
     })
   })
 
-  thkdusdcEventsArray.forEach(log => {
-    thkdTotalAmountIn += Number(log.args?.tokenAmountIn)
-    thkdTotalAmountOut += Number(log.args?.tokenAmountOut)
-
-    thkdProtocolStats.push({
-      amountIn: formatUnits(log.args?.tokenAmountIn, 6),
-      amountOut: formatUnits(log.args?.tokenAmountOut, 6),
-      feesIn: `${
-        Number(formatUnits(log.args?.tokenAmountIn, 6)) *
-        Number(thkdusdcSwapFee)
-      }`,
-      feesOut: `${
-        Number(formatUnits(log.args?.tokenAmountIn, 6)) *
-        Number(thkdusdcSwapFee)
-      }`,
-      caller: log.args?.caller
-    })
-  })
-
   console.log(
     `XSGD : { 
     totalTokenAmountIn: ${formatUnits(xsgdTotalAmountIn, 6)}, 
@@ -107,27 +78,17 @@ const fetchV0Stats = async () => {
       Number(formatUnits(xsgdTotalAmountOut, 6)) * Number(xsgdusdcSwapFee)
     }
     }, 
-    THKD : {
-      totalTokenAmountIn: ${formatUnits(thkdTotalAmountIn, 18)}, 
-      totalAmountOut: ${formatUnits(xsgdTotalAmountIn, 18)},
-      totalFeesIn : ${
-        Number(formatUnits(thkdTotalAmountIn, 18)) * Number(thkdusdcSwapFee)
-      },
-      totalFeesOut : ${
-        Number(formatUnits(thkdTotalAmountOut, 18)) * Number(thkdusdcSwapFee)
-      }
     }`
   )
 
   const xsgdStats = csvExporter.generateCsv(xsgdProtocolStats, true)
-  //const thkd = csvExporter.generateCsv(thkdProtocolStats, true)
+
   fs.writeFileSync('v0ProtocolXSGD.csv', xsgdStats)
-  // fs.writeFileSync('v0ProtocolTHKD.csv', thkd)
 
   console.log(xsgdProtocolStats)
 }
 
-fetchV0Stats()
+fetchV1Stats()
   .then(() => process.exit(0))
   .catch(error => {
     console.error(error)
