@@ -6,7 +6,6 @@ import * as fs from 'fs'
 import { curveABI } from '../constants/abi/curve'
 
 // TODO: Transform to hardhat tasks
-
 interface v1Stats {
   amountIn: string
   amountOut: string
@@ -15,6 +14,7 @@ interface v1Stats {
   caller: string
 }
 
+// (curveAddress: string, curveName: string)
 const fetchV1Stats = async () => {
   const [deployer] = await ethers.getSigners()
   const options = {
@@ -32,7 +32,7 @@ const fetchV1Stats = async () => {
   let xsgdTotalAmountIn = 0
   let xsgdTotalAmountOut = 0
 
-  const xsgdProtocolStats: v1stats[] = []
+  const xsgdProtocolStats: v1Stats[] = []
 
   const xsgdusdc = new ethers.Contract(BPool['xsgdusdc'], curveABI, deployer)
 
@@ -67,25 +67,8 @@ const fetchV1Stats = async () => {
     })
   })
 
-  console.log(
-    `XSGD : { 
-    totalTokenAmountIn: ${formatUnits(xsgdTotalAmountIn, 6)}, 
-    totalAmountOut: ${formatUnits(xsgdTotalAmountOut, 6)} ,
-    totalFeesIn : ${
-      Number(formatUnits(xsgdTotalAmountIn, 6)) * Number(xsgdusdcSwapFee)
-    },
-    totalFeesOut : ${
-      Number(formatUnits(xsgdTotalAmountOut, 6)) * Number(xsgdusdcSwapFee)
-    }
-    }, 
-    }`
-  )
-
   const xsgdStats = csvExporter.generateCsv(xsgdProtocolStats, true)
-
   fs.writeFileSync('v0ProtocolXSGD.csv', xsgdStats)
-
-  console.log(xsgdProtocolStats)
 }
 
 fetchV1Stats()
