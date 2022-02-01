@@ -1,12 +1,14 @@
 require('dotenv').config()
 
-import { task, HardhatUserConfig } from 'hardhat/config'
+import { HardhatUserConfig, task } from 'hardhat/config'
 import '@nomiclabs/hardhat-waffle'
 import 'hardhat-gas-reporter'
 import '@nomiclabs/hardhat-ethers'
 import 'solidity-coverage'
 import '@nomiclabs/hardhat-etherscan'
 import 'hardhat-typechain'
+import { fetchV0Stats } from './scripts/protocol-statistics/fetch-v0-stats'
+import { fetchV1Stats } from './scripts/protocol-statistics/fetch-v1-stats'
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -15,6 +17,18 @@ const INFURA_PROJECT_ID = process.env.INFURA_PROJECT_ID || ''
 const MNEMONIC_SEED = process.env.MNEMONIC_SEED || ''
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || ''
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY || ''
+
+task('v1statistics', 'fetch v1 statistics')
+  .addParam('curveaddress', 'Curve address')
+  .addParam('name', 'Name of the currency')
+  .addParam('decimal', 'Currency decimal')
+  .setAction(async ({ curveaddress, name, decimal }, hre) => {
+    await fetchV1Stats(hre, curveaddress, name, decimal)
+  })
+
+task('v0statistics', 'fetch v0 statistics', async (args, hre) => {
+  await fetchV0Stats(hre)
+})
 
 const config: HardhatUserConfig = {
   solidity: '0.6.12',

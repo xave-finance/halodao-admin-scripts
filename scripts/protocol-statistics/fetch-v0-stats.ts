@@ -1,22 +1,18 @@
-import { formatEther, formatUnits, parseUnits } from 'ethers/lib/utils'
+import { formatEther, formatUnits } from 'ethers/lib/utils'
 import { ExportToCsv } from 'export-to-csv'
-import { ethers } from 'hardhat'
-import { BPool, V0_START_BLOCK_NUMBER } from '../constants'
+import {
+  BPool,
+  END_BLOCK_NUMBER,
+  Stats,
+  V0_START_BLOCK_NUMBER
+} from '../constants'
 import { bptABI } from '../constants/abi/bpt'
 import * as fs from 'fs'
+import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
-// TODO: Transform to hardhat tasks
-
-interface v0Stats {
-  amountIn: string
-  amountOut: string
-  feesIn: string
-  feesOut: string
-  caller: string
-}
-
-const fetchV0Stats = async () => {
-  const [deployer] = await ethers.getSigners()
+// NOTE: thkd empty
+export const fetchV0Stats = async (hre: HardhatRuntimeEnvironment) => {
+  const [deployer] = await hre.ethers.getSigners()
   const options = {
     fieldSeparator: ',',
     quoteStrings: '"',
@@ -34,11 +30,11 @@ const fetchV0Stats = async () => {
   let xsgdTotalAmountOut = 0
   let thkdTotalAmountOut = 0
 
-  const xsgdProtocolStats: v0Stats[] = []
-  const thkdProtocolStats: v0Stats[] = []
+  const xsgdProtocolStats: Stats[] = []
+  const thkdProtocolStats: Stats[] = []
 
-  const xsgdusdc = new ethers.Contract(BPool['xsgdusdc'], bptABI, deployer)
-  const thkdusdc = new ethers.Contract(BPool['thkdusdc'], bptABI, deployer)
+  const xsgdusdc = new hre.ethers.Contract(BPool['xsgdusdc'], bptABI, deployer)
+  const thkdusdc = new hre.ethers.Contract(BPool['thkdusdc'], bptABI, deployer)
 
   const xsgdusdcEventFilter = await xsgdusdc.filters.LOG_SWAP()
   const thkdusdcEventFilter = await thkdusdc.filters.LOG_SWAP()
@@ -49,13 +45,13 @@ const fetchV0Stats = async () => {
   const xsgdusdcEvents = await xsgdusdc.queryFilter(
     xsgdusdcEventFilter,
     V0_START_BLOCK_NUMBER,
-    14115866
+    END_BLOCK_NUMBER
   )
 
   const thkdusdcEvents = await thkdusdc.queryFilter(
     thkdusdcEventFilter,
     V0_START_BLOCK_NUMBER,
-    14115866
+    END_BLOCK_NUMBER
   )
 
   const xsgdusdcEventsArray = xsgdusdcEvents
@@ -129,10 +125,3 @@ const fetchV0Stats = async () => {
 
   console.log(xsgdProtocolStats)
 }
-
-fetchV0Stats()
-  .then(() => process.exit(0))
-  .catch(error => {
-    console.error(error)
-    process.exit(1)
-  })

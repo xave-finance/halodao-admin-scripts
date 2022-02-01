@@ -1,79 +1,84 @@
-import { formatEther, formatUnits } from 'ethers/lib/utils'
+import { formatUnits } from 'ethers/lib/utils'
 import { ExportToCsv } from 'export-to-csv'
-import { ethers } from 'hardhat'
-import { BPool, V0_START_BLOCK_NUMBER } from '../constants'
+import {
+  END_BLOCK_NUMBER,
+  Stats,
+  SWAP_FEE_V1,
+  V0_START_BLOCK_NUMBER
+} from '../constants'
 import * as fs from 'fs'
 import { curveABI } from '../constants/abi/curve'
+import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
-// TODO: Transform to hardhat tasks
-interface v1Stats {
-  amountIn: string
-  amountOut: string
-  feesIn: string
-  feesOut: string
-  caller: string
-}
+export const fetchV1Stats = async (
+  hre: HardhatRuntimeEnvironment,
+  curveAddress: string,
+  name: string,
+  decimal: number
+) => {
+  const [deployer] = await hre.ethers.getSigners()
 
-// (curveAddress: string, curveName: string)
-const fetchV1Stats = async () => {
-  const [deployer] = await ethers.getSigners()
   const options = {
     fieldSeparator: ',',
     quoteStrings: '"',
     decimalSeparator: '.',
     showLabels: true,
     showTitle: true,
-    title: 'v1 Protocol Statistics',
+    title: `v1 Protocol Statistics - ${name}`,
     useTextFile: false,
     useBom: true,
     useKeysAsHeaders: true
   }
   const csvExporter = new ExportToCsv(options)
-  let xsgdTotalAmountIn = 0
-  let xsgdTotalAmountOut = 0
 
-  const xsgdProtocolStats: v1Stats[] = []
+  const protocolStats: Stats[] = []
+  let totalAmountIn = 0
+  let totalAmountOut = 0
+  let totalAmountInFees = 0
+  let totalAmountOutFees = 0
 
-  const xsgdusdc = new ethers.Contract(BPool['xsgdusdc'], curveABI, deployer)
-
-  const xsgdusdcEventFilter = await xsgdusdc.filters.LOG_SWAP()
-
-  const xsgdusdcSwapFee = formatEther(await xsgdusdc.getSwapFee())
-
-  const xsgdusdcEvents = await xsgdusdc.queryFilter(
-    xsgdusdcEventFilter,
-    V0_START_BLOCK_NUMBER,
-    14115866
+  const curveContract = new hre.ethers.Contract(
+    curveAddress,
+    curveABI,
+    deployer
   )
 
-  const xsgdusdcEventsArray = xsgdusdcEvents
+  const curveContractEventFilter = await curveContract.filters.Trade()
 
-  xsgdusdcEventsArray.forEach(log => {
-    xsgdTotalAmountIn += Number(log.args?.tokenAmountIn)
-    xsgdTotalAmountOut += Number(log.args?.tokenAmountOut)
+  const curveContractEvents = await curveContract.queryFilter(
+    curveContractEventFilter,
+    V0_START_BLOCK_NUMBER,
+    END_BLOCK_NUMBER
+  )
 
-    xsgdProtocolStats.push({
-      amountIn: formatUnits(log.args?.tokenAmountIn, 6),
-      amountOut: formatUnits(log.args?.tokenAmountOut, 6),
-      feesIn: `${
-        Number(formatUnits(log.args?.tokenAmountIn, 6)) *
-        Number(xsgdusdcSwapFee)
-      }`,
-      feesOut: `${
-        Number(formatUnits(log.args?.tokenAmountIn, 6)) *
-        Number(xsgdusdcSwapFee)
-      }`,
-      caller: log.args?.caller
+  const curveContractEventsArray = curveContractEvents
+
+  curveContractEventsArray.forEach(log => {
+    const amountIn = formatUnits(log.args?.originAmount, decimal)
+    const amountOut = formatUnits(log.args?.targetAmount, 6)
+    totalAmountIn += Number(amountIn)
+    totalAmountOut += Number(amountOut)
+    totalAmountInFees += Number(amountIn) * SWAP_FEE_V1
+    totalAmountOutFees += Number(amountOut) * SWAP_FEE_V1
+
+    protocolStats.push({
+      amountIn: amountIn,
+      amountOut: amountOut,
+      feesIn: `${Number(amountIn) * SWAP_FEE_V1}`,
+      feesOut: `${Number(amountOut) * SWAP_FEE_V1}`,
+      caller: log.args?.trader
     })
   })
 
-  const xsgdStats = csvExporter.generateCsv(xsgdProtocolStats, true)
-  fs.writeFileSync('v0ProtocolXSGD.csv', xsgdStats)
-}
+  const protocolStatsCSV = csvExporter.generateCsv(protocolStats, true)
+  fs.writeFileSync(`v1Protocol${name}.csv`, protocolStatsCSV)
 
-fetchV1Stats()
-  .then(() => process.exit(0))
-  .catch(error => {
-    console.error(error)
-    process.exit(1)
-  })
+  console.log(
+    `
+    Total Amount In- ${name}: ${totalAmountIn}, 
+    Total Amount Out - ${name}: ${totalAmountOut}, 
+    Total Amount In Fees - ${name}: ${totalAmountInFees}, 
+    Total Amount Out Fees - ${name}: ${totalAmountOutFees}
+    `
+  )
+}
