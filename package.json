@@ -5,8 +5,6 @@
     "call:script-test": "npx hardhat run scripts/contractCalls/test.ts",
     "call:generate-airdroplist": "npx hardhat run scripts/airdrop-ammv1/1-generate-airdroplist.ts --network mainnet",
     "call:generate-airdroplist-kovan": "npx hardhat run scripts/airdrop-ammv1/1-generate-airdroplist.ts --network kovan",
-    "call:v0-protocol-statistics": "npx hardhat run scripts/protocol-statistics/fetch-v0-stats.ts --network mainnet",
-    "call:v1-protocol-statistics": "npx hardhat run scripts/protocol-statistics/fetch-v1-stats.ts --network mainnet",
     "recompile": "rm -rf artifacts && rm -rf cache && npx hardhat compile",
     "node": "npx hardhat node"
   },

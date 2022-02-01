@@ -18,6 +18,7 @@ const MNEMONIC_SEED = process.env.MNEMONIC_SEED || ''
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || ''
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY || ''
 
+// Tasks
 task('v1statistics', 'fetch v1 statistics')
   .addParam('curveaddress', 'Curve address')
   .addParam('name', 'Name of the currency')

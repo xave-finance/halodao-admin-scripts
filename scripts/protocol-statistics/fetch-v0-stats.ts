@@ -1,18 +1,13 @@
 import { formatEther, formatUnits } from 'ethers/lib/utils'
 import { ExportToCsv } from 'export-to-csv'
-import {
-  BPool,
-  END_BLOCK_NUMBER,
-  Stats,
-  V0_START_BLOCK_NUMBER
-} from '../constants'
+import { BPool, Stats, V0_START_BLOCK_NUMBER } from '../constants'
 import { bptABI } from '../constants/abi/bpt'
 import * as fs from 'fs'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
-// NOTE: thkd empty
 export const fetchV0Stats = async (hre: HardhatRuntimeEnvironment) => {
   const [deployer] = await hre.ethers.getSigners()
+  // 1 - define csv parameters
   const options = {
     fieldSeparator: ',',
     quoteStrings: '"',
@@ -25,6 +20,8 @@ export const fetchV0Stats = async (hre: HardhatRuntimeEnvironment) => {
     useKeysAsHeaders: true
   }
   const csvExporter = new ExportToCsv(options)
+
+  // 2 - set variables
   let xsgdTotalAmountIn = 0
   let thkdTotalAmountIn = 0
   let xsgdTotalAmountOut = 0
@@ -33,30 +30,36 @@ export const fetchV0Stats = async (hre: HardhatRuntimeEnvironment) => {
   const xsgdProtocolStats: Stats[] = []
   const thkdProtocolStats: Stats[] = []
 
+  // 3 - make bpt contract instance
   const xsgdusdc = new hre.ethers.Contract(BPool['xsgdusdc'], bptABI, deployer)
   const thkdusdc = new hre.ethers.Contract(BPool['thkdusdc'], bptABI, deployer)
 
+  // 4 - define LOG_SWAP() filter for querying events
   const xsgdusdcEventFilter = await xsgdusdc.filters.LOG_SWAP()
   const thkdusdcEventFilter = await thkdusdc.filters.LOG_SWAP()
 
+  // 5 - get swap fee
   const xsgdusdcSwapFee = formatEther(await xsgdusdc.getSwapFee())
   const thkdusdcSwapFee = formatEther(await thkdusdc.getSwapFee())
 
+  // 6 - query all LOG_SWAP events from deployment to current block
   const xsgdusdcEvents = await xsgdusdc.queryFilter(
     xsgdusdcEventFilter,
     V0_START_BLOCK_NUMBER,
-    END_BLOCK_NUMBER
+    await deployer.provider?.getBlockNumber()
   )
 
   const thkdusdcEvents = await thkdusdc.queryFilter(
     thkdusdcEventFilter,
     V0_START_BLOCK_NUMBER,
-    END_BLOCK_NUMBER
+    await deployer.provider?.getBlockNumber()
   )
 
+  // 7 - store Events[] to an array to prevent loss
   const xsgdusdcEventsArray = xsgdusdcEvents
   const thkdusdcEventsArray = thkdusdcEvents
 
+  // 8 - calculate and format to typed array
   xsgdusdcEventsArray.forEach(log => {
     xsgdTotalAmountIn += Number(log.args?.tokenAmountIn)
     xsgdTotalAmountOut += Number(log.args?.tokenAmountOut)
@@ -95,6 +98,7 @@ export const fetchV0Stats = async (hre: HardhatRuntimeEnvironment) => {
     })
   })
 
+  // 9 - output total values
   console.log(
     `XSGD : { 
     totalTokenAmountIn: ${formatUnits(xsgdTotalAmountIn, 6)}, 
@@ -118,10 +122,10 @@ export const fetchV0Stats = async (hre: HardhatRuntimeEnvironment) => {
     }`
   )
 
+  // 10 - write csv file
   const xsgdStats = csvExporter.generateCsv(xsgdProtocolStats, true)
-  //const thkd = csvExporter.generateCsv(thkdProtocolStats, true)
   fs.writeFileSync('v0ProtocolXSGD.csv', xsgdStats)
+  // Note: THKD yielded no result
+  // const thkd = csvExporter.generateCsv(thkdProtocolStats, true)
   // fs.writeFileSync('v0ProtocolTHKD.csv', thkd)
-
-  console.log(xsgdProtocolStats)
 }

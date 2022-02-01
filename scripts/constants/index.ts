@@ -1,5 +1,4 @@
 export const V0_START_BLOCK_NUMBER = 12765981
-export const END_BLOCK_NUMBER = 14115866
 export const SWAP_FEE_V1 = 0.0005
 
 export const BPool: { xsgdusdc: string; thkdusdc: string } = {
