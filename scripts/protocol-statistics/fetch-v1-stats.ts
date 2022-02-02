@@ -70,6 +70,15 @@ export const fetchV1Stats = async (
       caller: log.args?.trader
     })
   })
+  
+  // push the totaled values to the end of the array - thus the end of the csv file
+ protocolStats.push({
+      totalAmountIn: totalAmountIn,
+      totalAmountOut: totalAmountOut,
+      totalAmountInFees: totalAmountInFees,
+      totalAmountOutFees: totalAmountOutFees,
+      caller: log.args?.trader
+    })
   // 8 - output csv
   const protocolStatsCSV = csvExporter.generateCsv(protocolStats, true)
   fs.writeFileSync(`v1Protocol${name}.csv`, protocolStatsCSV)
