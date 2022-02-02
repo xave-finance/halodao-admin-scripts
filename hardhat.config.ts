@@ -34,6 +34,20 @@ task('v0statistics', 'fetch v0 statistics', async (args, hre) => {
 const config: HardhatUserConfig = {
   solidity: '0.6.12',
   networks: {
+  arbitrum: {
+      url: `https://arbitrum-mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
+      chainId: 1,
+      accounts: {
+        mnemonic: MNEMONIC_SEED
+      }
+    },
+    polygon: {
+      url: `https://polygon-mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
+      chainId: 1,
+      accounts: {
+        mnemonic: MNEMONIC_SEED
+      }
+    },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
       chainId: 1,
