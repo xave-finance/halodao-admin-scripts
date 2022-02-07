@@ -71,7 +71,7 @@ export const fetchV1Stats = async (
     // 7 - calculate and format to typed array
     curveContractEventsArray.forEach(log => {
       const amountIn = formatUnits(log.args?.originAmount, decimal)
-      const amountOut = formatUnits(log.args?.targetAmount, 6)
+      const amountOut = formatUnits(log.args?.targetAmount, 18)
       totalAmountIn += Number(amountIn)
       totalAmountOut += Number(amountOut)
       totalAmountInFees += Number(amountIn) * SWAP_FEE_V1
