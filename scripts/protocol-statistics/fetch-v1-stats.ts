@@ -57,27 +57,12 @@ export const fetchV1Stats = async (
   // 4 - define contract event filter
   const curveContractEventFilter = await curveContract.filters.Trade()
 
-  console.log(`${ITERATION} block ranges found.`)
-
-  for (let i = 1; i < ITERATION; i++) {
+  if (hre.network.name == 'mainnet') {
     // 5 - query all Trade events from deployment to current block
-    const PREV_BLOCK = i - 1
-    const CURRENT_ADDTL_BLOCK = MAX_BLOCKRANGE * i - 1
-    const CURRENT_PREV_ADDTL_BLOCK = MAX_BLOCKRANGE * PREV_BLOCK
-    const CURRENT_FROM_BLOCK =
-      MAX_BLOCKRANGE * PREV_BLOCK <= 0
-        ? FROM_BLOCK
-        : FROM_BLOCK + CURRENT_PREV_ADDTL_BLOCK
-    const CURRENT_TO_BLOCK = FROM_BLOCK + CURRENT_ADDTL_BLOCK - 1
-
-    console.log(
-      `Checking Block Range # ${i}: ${CURRENT_FROM_BLOCK}, ${CURRENT_TO_BLOCK}`
-    )
-
     const curveContractEvents = await curveContract.queryFilter(
       curveContractEventFilter,
-      CURRENT_FROM_BLOCK,
-      CURRENT_TO_BLOCK
+      FROM_BLOCK,
+      await deployer.provider?.getBlockNumber()
     )
 
     // 6 - store Events[] to an array to prevent loss
@@ -87,8 +72,6 @@ export const fetchV1Stats = async (
     curveContractEventsArray.forEach(log => {
       const amountIn = formatUnits(log.args?.originAmount, decimal)
       const amountOut = formatUnits(log.args?.targetAmount, 6)
-      const tradeAmount = Number(log.args?.tAmt_)
-
       totalAmountIn += Number(amountIn)
       totalAmountOut += Number(amountOut)
       totalAmountInFees += Number(amountIn) * SWAP_FEE_V1
@@ -102,16 +85,71 @@ export const fetchV1Stats = async (
         caller: log.args?.trader
       })
     })
-  }
 
-  // 8 - push the totaled values to the end of the array - thus the end of the csv file
-  protocolStats.push({
-    amountIn: `${totalAmountIn}`,
-    amountOut: `${totalAmountOut}`,
-    feesIn: `${totalAmountInFees}`,
-    feesOut: `${totalAmountOutFees}`,
-    caller: 'TOTAL'
-  })
+    // 8 - push the totaled values to the end of the array - thus the end of the csv file
+    protocolStats.push({
+      amountIn: `${totalAmountIn}`,
+      amountOut: `${totalAmountOut}`,
+      feesIn: `${totalAmountInFees}`,
+      feesOut: `${totalAmountOutFees}`,
+      caller: 'TOTAL'
+    })
+  } else {
+    console.log(`${ITERATION} block ranges found.`)
+    for (let i = 1; i < ITERATION; i++) {
+      // 5 - query all Trade events from deployment to current block
+      const PREV_BLOCK = i - 1
+      const CURRENT_ADDTL_BLOCK = MAX_BLOCKRANGE * i - 1
+      const CURRENT_PREV_ADDTL_BLOCK = MAX_BLOCKRANGE * PREV_BLOCK
+      const CURRENT_FROM_BLOCK =
+        MAX_BLOCKRANGE * PREV_BLOCK <= 0
+          ? FROM_BLOCK
+          : FROM_BLOCK + CURRENT_PREV_ADDTL_BLOCK
+      const CURRENT_TO_BLOCK = FROM_BLOCK + CURRENT_ADDTL_BLOCK - 1
+
+      console.log(
+        `Checking Block Range # ${i}: ${CURRENT_FROM_BLOCK}, ${CURRENT_TO_BLOCK}`
+      )
+
+      const curveContractEvents = await curveContract.queryFilter(
+        curveContractEventFilter,
+        CURRENT_FROM_BLOCK,
+        CURRENT_TO_BLOCK
+      )
+
+      // 6 - store Events[] to an array to prevent loss
+      const curveContractEventsArray = curveContractEvents
+
+      // 7 - calculate and format to typed array
+      curveContractEventsArray.forEach(log => {
+        const amountIn = formatUnits(log.args?.originAmount, decimal)
+        const amountOut = formatUnits(log.args?.targetAmount, 18)
+        const tradeAmount = Number(log.args?.tAmt_)
+
+        totalAmountIn += Number(amountIn)
+        totalAmountOut += Number(amountOut)
+        totalAmountInFees += Number(amountIn) * SWAP_FEE_V1
+        totalAmountOutFees += Number(amountOut) * SWAP_FEE_V1
+
+        protocolStats.push({
+          amountIn: amountIn,
+          amountOut: amountOut,
+          feesIn: `${Number(amountIn) * SWAP_FEE_V1}`,
+          feesOut: `${Number(amountOut) * SWAP_FEE_V1}`,
+          caller: log.args?.trader
+        })
+      })
+    }
+
+    // 8 - push the totaled values to the end of the array - thus the end of the csv file
+    protocolStats.push({
+      amountIn: `${totalAmountIn}`,
+      amountOut: `${totalAmountOut}`,
+      feesIn: `${totalAmountInFees}`,
+      feesOut: `${totalAmountOutFees}`,
+      caller: 'TOTAL'
+    })
+  }
 
   // 9 - output csv
   const protocolStatsCSV = csvExporter.generateCsv(protocolStats, true)
