@@ -1,6 +1,6 @@
 import { formatEther, formatUnits } from 'ethers/lib/utils'
 import { ExportToCsv } from 'export-to-csv'
-import { BPool, Stats, V0_START_BLOCK_NUMBER } from '../constants'
+import { BPool, getStartBlockNumber, Stats } from '../constants'
 import { bptABI } from '../constants/abi/bpt'
 import * as fs from 'fs'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
@@ -20,6 +20,7 @@ export const fetchV0Stats = async (hre: HardhatRuntimeEnvironment) => {
     useKeysAsHeaders: true
   }
   const csvExporter = new ExportToCsv(options)
+  const FROM_BLOCK = getStartBlockNumber(hre.network.name)
 
   // 2 - set variables
   let xsgdTotalAmountIn = 0
@@ -45,13 +46,13 @@ export const fetchV0Stats = async (hre: HardhatRuntimeEnvironment) => {
   // 6 - query all LOG_SWAP events from deployment to current block
   const xsgdusdcEvents = await xsgdusdc.queryFilter(
     xsgdusdcEventFilter,
-    V0_START_BLOCK_NUMBER,
+    FROM_BLOCK,
     await deployer.provider?.getBlockNumber()
   )
 
   const thkdusdcEvents = await thkdusdc.queryFilter(
     thkdusdcEventFilter,
-    V0_START_BLOCK_NUMBER,
+    FROM_BLOCK,
     await deployer.provider?.getBlockNumber()
   )
 

@@ -1,9 +1,15 @@
-import { formatUnits } from 'ethers/lib/utils'
+import { formatEther, formatUnits } from 'ethers/lib/utils'
 import { ExportToCsv } from 'export-to-csv'
-import { Stats, SWAP_FEE_V1, V0_START_BLOCK_NUMBER } from '../constants'
+import {
+  getMaxBlockRange,
+  getStartBlockNumber,
+  Stats,
+  SWAP_FEE_V1
+} from '../constants'
 import * as fs from 'fs'
 import { curveABI } from '../constants/abi/curve'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import { getBlockRangeIteration } from '../util/blockUtils'
 
 export const fetchV1Stats = async (
   hre: HardhatRuntimeEnvironment,
@@ -12,6 +18,9 @@ export const fetchV1Stats = async (
   decimal: number
 ) => {
   const [deployer] = await hre.ethers.getSigners()
+
+  const FROM_BLOCK = getStartBlockNumber(hre.network.name)
+
   // 1 - define csv parameters
   const options = {
     fieldSeparator: ',',
@@ -26,6 +35,11 @@ export const fetchV1Stats = async (
   }
 
   const csvExporter = new ExportToCsv(options)
+  const MAX_BLOCKRANGE = getMaxBlockRange(hre.network.name)
+  const ITERATION = getBlockRangeIteration(
+    Number(await deployer.provider?.getBlockNumber()),
+    MAX_BLOCKRANGE
+  )
 
   // 2 - set variables
   const protocolStats: Stats[] = []
@@ -43,33 +57,52 @@ export const fetchV1Stats = async (
   // 4 - define contract event filter
   const curveContractEventFilter = await curveContract.filters.Trade()
 
-  // 5 - query all Trade events from deployment to current block
-  const curveContractEvents = await curveContract.queryFilter(
-    curveContractEventFilter,
-    V0_START_BLOCK_NUMBER,
-    await deployer.provider?.getBlockNumber()
-  )
+  console.log(`${ITERATION} block ranges found.`)
 
-  // 6 - store Events[] to an array to prevent loss
-  const curveContractEventsArray = curveContractEvents
+  for (let i = 1; i < ITERATION; i++) {
+    // 5 - query all Trade events from deployment to current block
+    const PREV_BLOCK = i - 1
+    const CURRENT_ADDTL_BLOCK = MAX_BLOCKRANGE * i - 1
+    const CURRENT_PREV_ADDTL_BLOCK = MAX_BLOCKRANGE * PREV_BLOCK
+    const CURRENT_FROM_BLOCK =
+      MAX_BLOCKRANGE * PREV_BLOCK <= 0
+        ? FROM_BLOCK
+        : FROM_BLOCK + CURRENT_PREV_ADDTL_BLOCK
+    const CURRENT_TO_BLOCK = FROM_BLOCK + CURRENT_ADDTL_BLOCK - 1
 
-  // 7 - calculate and format to typed array
-  curveContractEventsArray.forEach(log => {
-    const amountIn = formatUnits(log.args?.originAmount, decimal)
-    const amountOut = formatUnits(log.args?.targetAmount, 6)
-    totalAmountIn += Number(amountIn)
-    totalAmountOut += Number(amountOut)
-    totalAmountInFees += Number(amountIn) * SWAP_FEE_V1
-    totalAmountOutFees += Number(amountOut) * SWAP_FEE_V1
+    console.log(
+      `Checking Block Range # ${i}: ${CURRENT_FROM_BLOCK}, ${CURRENT_TO_BLOCK}`
+    )
 
-    protocolStats.push({
-      amountIn: amountIn,
-      amountOut: amountOut,
-      feesIn: `${Number(amountIn) * SWAP_FEE_V1}`,
-      feesOut: `${Number(amountOut) * SWAP_FEE_V1}`,
-      caller: log.args?.trader
+    const curveContractEvents = await curveContract.queryFilter(
+      curveContractEventFilter,
+      CURRENT_FROM_BLOCK,
+      CURRENT_TO_BLOCK
+    )
+
+    // 6 - store Events[] to an array to prevent loss
+    const curveContractEventsArray = curveContractEvents
+
+    // 7 - calculate and format to typed array
+    curveContractEventsArray.forEach(log => {
+      const amountIn = formatUnits(log.args?.originAmount, decimal)
+      const amountOut = formatUnits(log.args?.targetAmount, 6)
+      const tradeAmount = Number(log.args?.tAmt_)
+
+      totalAmountIn += Number(amountIn)
+      totalAmountOut += Number(amountOut)
+      totalAmountInFees += Number(amountIn) * SWAP_FEE_V1
+      totalAmountOutFees += Number(amountOut) * SWAP_FEE_V1
+
+      protocolStats.push({
+        amountIn: amountIn,
+        amountOut: amountOut,
+        feesIn: `${Number(amountIn) * SWAP_FEE_V1}`,
+        feesOut: `${Number(amountOut) * SWAP_FEE_V1}`,
+        caller: log.args?.trader
+      })
     })
-  })
+  }
 
   // 8 - push the totaled values to the end of the array - thus the end of the csv file
   protocolStats.push({

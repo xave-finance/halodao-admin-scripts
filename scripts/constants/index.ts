@@ -1,4 +1,3 @@
-export const V0_START_BLOCK_NUMBER = 12765981
 export const SWAP_FEE_V1 = 0.0005
 
 export const BPool: { xsgdusdc: string; thkdusdc: string } = {
@@ -12,4 +11,48 @@ export interface Stats {
   feesIn: string
   feesOut: string
   caller: string
+}
+
+export interface StatsCurve {
+  amountIn: string
+  amountOut: string
+  feesIn: string
+  feesOut: string
+  tradeAmount: string
+  caller: string
+}
+
+// add more here as needed
+export const getStartBlockNumber = (networkName: string) => {
+  switch (networkName) {
+    case 'mainnet': {
+      return 12765981
+    }
+    case 'arbitrum': {
+      return 2525586
+    }
+    case 'polygon': {
+      return 18910353
+    }
+    default: {
+      return 12765981
+    }
+  }
+}
+
+export const getMaxBlockRange = (networkName: string): number => {
+  switch (networkName) {
+    case 'mainnet': {
+      return 1
+    }
+    case 'arbitrum': {
+      return 100000
+    }
+    case 'polygon': {
+      return 3500
+    }
+    default: {
+      return 1
+    }
+  }
 }

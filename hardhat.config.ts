@@ -36,14 +36,14 @@ const config: HardhatUserConfig = {
   networks: {
     arbitrum: {
       url: `https://arbitrum-mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
-      chainId: 1,
+      chainId: 42161,
       accounts: {
         mnemonic: MNEMONIC_SEED
       }
     },
     polygon: {
       url: `https://polygon-mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
-      chainId: 1,
+      chainId: 137,
       accounts: {
         mnemonic: MNEMONIC_SEED
       }
