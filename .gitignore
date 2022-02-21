@@ -23,4 +23,4 @@ coverage.json
 coverage
 typechain
 
-data.csv
+*.csv
