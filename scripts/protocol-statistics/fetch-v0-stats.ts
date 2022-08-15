@@ -99,7 +99,7 @@ export const fetchV0Stats = async (hre: HardhatRuntimeEnvironment) => {
     })
   })
 
-  // 9 - output total values
+  // // 9 - output total values
   console.log(
     `XSGD : { 
     totalTokenAmountIn: ${formatUnits(xsgdTotalAmountIn, 6)}, 
@@ -123,9 +123,9 @@ export const fetchV0Stats = async (hre: HardhatRuntimeEnvironment) => {
     }`
   )
 
-  // 10 - write csv file
-  const xsgdStats = csvExporter.generateCsv(xsgdProtocolStats, true)
-  fs.writeFileSync('v0ProtocolXSGD.csv', xsgdStats)
+  // // 10 - write csv file
+  // const xsgdStats = csvExporter.generateCsv(xsgdProtocolStats, true)
+  // fs.writeFileSync('v0ProtocolXSGD.csv', xsgdStats)
   // Note: THKD yielded no result
   // const thkd = csvExporter.generateCsv(thkdProtocolStats, true)
   // fs.writeFileSync('v0ProtocolTHKD.csv', thkd)

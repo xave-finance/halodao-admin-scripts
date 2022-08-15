@@ -34,10 +34,12 @@ export const fetchV1Stats = async (
     useKeysAsHeaders: true
   }
 
+  console.log(Number(await deployer.provider?.getBlockNumber()))
   const csvExporter = new ExportToCsv(options)
   const MAX_BLOCKRANGE = getMaxBlockRange(hre.network.name)
   const ITERATION = getBlockRangeIteration(
-    Number(await deployer.provider?.getBlockNumber()),
+    4914746,
+    // Number(await deployer.provider?.getBlockNumber()),
     MAX_BLOCKRANGE
   )
 
@@ -68,24 +70,47 @@ export const fetchV1Stats = async (
     // 6 - store Events[] to an array to prevent loss
     const curveContractEventsArray = curveContractEvents
 
+    // console.log('curveContractEventsArray', curveContractEventsArray);
+
     // 7 - calculate and format to typed array
-    curveContractEventsArray.forEach(log => {
+    // curveContractEventsArray.forEach(async log => {
+    //   const amountIn = formatUnits(log.args?.originAmount, decimal)
+    //   const amountOut = formatUnits(log.args?.targetAmount, 18)
+    //   totalAmountIn += Number(amountIn)
+    //   totalAmountOut += Number(amountOut)
+    //   totalAmountInFees += Number(amountIn) * SWAP_FEE_V1
+    //   totalAmountOutFees += Number(amountOut) * SWAP_FEE_V1
+    //   protocolStats.push({
+    //     amountIn: amountIn,
+    //     amountOut: amountOut,
+    //     feesIn: `${Number(amountIn) * SWAP_FEE_V1}`,
+    //     feesOut: `${Number(amountOut) * SWAP_FEE_V1}`,
+    //     caller: log.args?.trader,
+    //     timestamp: `${new Date((await log.getBlock()).timestamp*1000)}`
+    //   })
+    // })
+
+    for (let key in curveContractEventsArray) {
+      const log = curveContractEventsArray[key]
       const amountIn = formatUnits(log.args?.originAmount, decimal)
       const amountOut = formatUnits(log.args?.targetAmount, 18)
       totalAmountIn += Number(amountIn)
       totalAmountOut += Number(amountOut)
       totalAmountInFees += Number(amountIn) * SWAP_FEE_V1
       totalAmountOutFees += Number(amountOut) * SWAP_FEE_V1
-
       protocolStats.push({
         amountIn: amountIn,
         amountOut: amountOut,
         feesIn: `${Number(amountIn) * SWAP_FEE_V1}`,
         feesOut: `${Number(amountOut) * SWAP_FEE_V1}`,
-        caller: log.args?.trader
+        caller: log.args?.trader,
+        month: `${new Date((await log.getBlock()).timestamp*1000).toLocaleString('default', { month: 'long' })}`,
+        year: `${new Date((await log.getBlock()).timestamp*1000).getFullYear()}`,
+        timestamp: `${new Date((await log.getBlock()).timestamp*1000)}`,
       })
-    })
+    }
 
+    console.log(protocolStats)
     // 8 - push the totaled values to the end of the array - thus the end of the csv file
     protocolStats.push({
       amountIn: `${totalAmountIn}`,
@@ -120,12 +145,33 @@ export const fetchV1Stats = async (
       // 6 - store Events[] to an array to prevent loss
       const curveContractEventsArray = curveContractEvents
 
+      console.log('curveContractEventsArray', curveContractEventsArray);
+
       // 7 - calculate and format to typed array
-      curveContractEventsArray.forEach(log => {
+      // curveContractEventsArray.forEach(async log  => {
+      //   console.log('event', log)
+      //   const amountIn = formatUnits(log.args?.originAmount, decimal)
+      //   const amountOut = formatUnits(log.args?.targetAmount, 18)
+      //   const tradeAmount = Number(log.args?.tAmt_)
+      //   totalAmountIn += Number(amountIn)
+      //   totalAmountOut += Number(amountOut)
+      //   totalAmountInFees += Number(amountIn) * SWAP_FEE_V1
+      //   totalAmountOutFees += Number(amountOut) * SWAP_FEE_V1
+
+      //   protocolStats.push({
+      //     amountIn: amountIn,
+      //     amountOut: amountOut,
+      //     feesIn: `${Number(amountIn) * SWAP_FEE_V1}`,
+      //     feesOut: `${Number(amountOut) * SWAP_FEE_V1}`,
+      //     caller: log.args?.trader,
+      //     timestamp: `${new Date((await log.getBlock()).timestamp*1000)}`
+      //   })
+      // })
+      for (let key in curveContractEventsArray) {
+        const log = curveContractEventsArray[key]
         const amountIn = formatUnits(log.args?.originAmount, decimal)
         const amountOut = formatUnits(log.args?.targetAmount, 18)
         const tradeAmount = Number(log.args?.tAmt_)
-
         totalAmountIn += Number(amountIn)
         totalAmountOut += Number(amountOut)
         totalAmountInFees += Number(amountIn) * SWAP_FEE_V1
@@ -136,11 +182,15 @@ export const fetchV1Stats = async (
           amountOut: amountOut,
           feesIn: `${Number(amountIn) * SWAP_FEE_V1}`,
           feesOut: `${Number(amountOut) * SWAP_FEE_V1}`,
-          caller: log.args?.trader
+          caller: log.args?.trader,
+          month: `${new Date((await log.getBlock()).timestamp*1000).toLocaleString('default', { month: 'long' })}`,
+          year: `${new Date((await log.getBlock()).timestamp*1000).getFullYear()}`,
+          timestamp: `${new Date((await log.getBlock()).timestamp*1000)}`,
         })
-      })
+      }
     }
 
+    console.log(protocolStats)
     // 8 - push the totaled values to the end of the array - thus the end of the csv file
     protocolStats.push({
       amountIn: `${totalAmountIn}`,
@@ -153,7 +203,7 @@ export const fetchV1Stats = async (
 
   // 9 - output csv
   const protocolStatsCSV = csvExporter.generateCsv(protocolStats, true)
-  fs.writeFileSync(`v1Protocol${name}.csv`, protocolStatsCSV)
+  fs.writeFileSync(`v1Protocol${name}_${hre.network.name}.csv`, protocolStatsCSV)
 
   // 9 - output total values
   console.log(

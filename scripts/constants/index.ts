@@ -11,6 +11,9 @@ export interface Stats {
   feesIn: string
   feesOut: string
   caller: string
+  month?: string
+  year?: string
+  timestamp?: string
 }
 
 export interface StatsCurve {
@@ -29,10 +32,17 @@ export const getStartBlockNumber = (networkName: string) => {
       return 12765981
     }
     case 'arbitrum': {
-      return 2525586
+      return 3720315	// 5125323
+      // return 7341762 //3720315 //5125323 //2525586
     }
     case 'polygon': {
-      return 18910353
+      return 20588832
+      // return 20620820
+      // return 20697650
+      // return 22193610
+      // return 26981444 //18959446 
+      // return 20697650 //23320444 // 18959446
+      // return 18910353
     }
     default: {
       return 12765981

@@ -35,6 +35,7 @@ const config: HardhatUserConfig = {
   solidity: '0.6.12',
   networks: {
     arbitrum: {
+      // https://arb-mainnet.g.alchemy.com/v2/fWO8zE364e92xZk5mQQPqWnAr9Eychua
       url: `https://arbitrum-mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
       chainId: 42161,
       accounts: {
@@ -42,14 +43,16 @@ const config: HardhatUserConfig = {
       }
     },
     polygon: {
-      url: `https://polygon-mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
+      // url: `https://polygon-mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
+      url: `https://polygon-mainnet.g.alchemy.com/v2/uAxh7xPTIteQvKVEs5kQzpAWJjdmX8o8`,
       chainId: 137,
       accounts: {
         mnemonic: MNEMONIC_SEED
       }
     },
     mainnet: {
-      url: `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
+      // url: `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
+      url: `https://eth-mainnet.g.alchemy.com/v2/DiPOcqLZRi6pPRizpQTbb5AGppuRI0dI`,
       chainId: 1,
       accounts: {
         mnemonic: MNEMONIC_SEED
