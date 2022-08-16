@@ -68,7 +68,7 @@ export const generateAirdroplist = async (
         }
     }
 
-    // 5 - get the RNBW balance of addresses at snapshot block
+    // 5 - get the xRNBW balance of addresses at snapshot block
     for (let key in addresses) {
         const bal = await tokenContract.balanceOf(addresses[key], { blockTag: snapshotBlockNumber })
         if (bal > 0) {
