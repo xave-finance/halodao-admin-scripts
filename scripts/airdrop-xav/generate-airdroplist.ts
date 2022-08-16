@@ -64,6 +64,7 @@ export const generateAirdroplist = async (hre: HardhatRuntimeEnvironment) => {
         }
     }
 
+    console.log(addresses)
     // 5 - get the RNBW balance of addresses at snapshot block
     for (let key in addresses) {
         const bal = await rnbwContract.balanceOf(addresses[key], { blockTag: snapshotBlockNumber })
@@ -77,6 +78,6 @@ export const generateAirdroplist = async (hre: HardhatRuntimeEnvironment) => {
     }
 
     // 5 - output csv
-    const protocolStatsCSV = csvExporter.generateCsv(airdropList, true)
-    fs.writeFileSync(`v1Protocol${name}.csv`, protocolStatsCSV)
+    const xavAirdropCSV = csvExporter.generateCsv(airdropList, true)
+    fs.writeFileSync(`xav-airdrop-list.csv`, xavAirdropCSV)
 }
