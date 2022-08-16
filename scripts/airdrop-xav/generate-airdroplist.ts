@@ -3,7 +3,7 @@ require('dotenv').config()
 // import { ethers } from 'hardhat'
 import { formatEther, formatUnits, parseEther } from 'ethers/lib/utils'
 import { ExportToCsv } from 'export-to-csv'
-import { internalRnbwHolders } from '../constants/abi/rnbw'
+import { xrnbwInternalHolders } from '../constants/index'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import * as fs from 'fs'
 
@@ -12,7 +12,11 @@ interface AirdropList {
     balance: string
 }
 
-export const generateAirdroplist = async (hre: HardhatRuntimeEnvironment) => {
+export const generateAirdroplist = async (
+    hre: HardhatRuntimeEnvironment,
+    name: string,
+    tokenaddress: string
+) => {
     // 0 - Setup
     const options = {
         fieldSeparator: ',',
@@ -29,45 +33,44 @@ export const generateAirdroplist = async (hre: HardhatRuntimeEnvironment) => {
     const csvExporter = new ExportToCsv(options)
     const airdropList: AirdropList[] = []
     const addresses: string[] = []
-    const snapshotBlockNumber = 15281097 
+    const snapshotBlockNumber = 15281097
 
-    // 1 - get rnbwContract contract instance
-    const rnbwContract = await hre.ethers.getContractAt(
-        'HaloHalo',
-        '0x47BE779De87de6580d0548cde80710a93c502405'
+    // 1 - get tokenContract contract instance
+    const tokenContract = await hre.ethers.getContractAt(
+        name,
+        tokenaddress,
     )
 
     // 2 - query all Transfer events from deployment to snapshot block
-    const rnbwContractEventFilter = await rnbwContract.filters.Transfer()
+    const tokenContractEventFilter = await tokenContract.filters.Transfer()
 
-    const rnbwContractEvents = await rnbwContract.queryFilter(
-        rnbwContractEventFilter,
+    const tokenContractEvents = await tokenContract.queryFilter(
+        tokenContractEventFilter,
         12570796, // deployment block
         snapshotBlockNumber
     )
 
     // 3 - store Events[] to an array to prevent loss
-    const rnbwContractEventsArray = rnbwContractEvents
+    const tokenContractEventsArray = tokenContractEvents
 
     // 4 - store all unique addresses from transfer events in an array
-    for (let key in rnbwContractEventsArray) {
-        const log = rnbwContractEventsArray[key]
+    for (let key in tokenContractEventsArray) {
+        const log = tokenContractEventsArray[key]
         if (addresses.indexOf(log.args?.to) < 0
             && log.args?.to != '0x0000000000000000000000000000000000000000'
-            && internalRnbwHolders.indexOf(log.args?.to) < 0) {
+            && xrnbwInternalHolders.indexOf(log.args?.to) < 0) {
             addresses.push(log.args?.to)
         }
         if (addresses.indexOf(log.args?.from) < 0
             && log.args?.from != '0x0000000000000000000000000000000000000000'
-            && internalRnbwHolders.indexOf(log.args?.from) < 0) {
+            && xrnbwInternalHolders.indexOf(log.args?.from) < 0) {
             addresses.push(log.args?.from)
         }
     }
 
-    console.log(addresses)
     // 5 - get the RNBW balance of addresses at snapshot block
     for (let key in addresses) {
-        const bal = await rnbwContract.balanceOf(addresses[key], { blockTag: snapshotBlockNumber })
+        const bal = await tokenContract.balanceOf(addresses[key], { blockTag: snapshotBlockNumber })
         if (bal > 0) {
             airdropList.push({
                 address: addresses[key],

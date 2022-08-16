@@ -32,9 +32,12 @@ task('v0statistics', 'fetch v0 statistics', async (args, hre) => {
   await fetchV0Stats(hre)
 })
 
-task('xav-airdrop', 'generate airdrop addresses', async (args, hre) => {
-  await generateAirdroplist(hre)
-})
+task('xav-airdrop', 'generate XAV airdrop addresses')
+  .addParam('name', 'Token Contract Name')
+  .addParam('tokenaddress', 'Token Contract Address')
+  .setAction(async ({ name, tokenaddress }, hre) => {
+    await generateAirdroplist(hre, name, tokenaddress)
+  })
 
 const config: HardhatUserConfig = {
   solidity: '0.6.12',

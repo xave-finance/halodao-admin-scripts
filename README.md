@@ -55,5 +55,5 @@ yarn hardhat v1statistics --curveaddress 0x64DCbDeb83e39f152B7Faf83E5E5673faCA0D
 
 ### Using XAV Airdrop 
 ```
-yarn hardhat xav-airdrop --network mainnet
+yarn hardhat xav-airdrop --tokencontractname HaloHalo --tokenaddress 0x47BE779De87de6580d0548cde80710a93c502405 --network mainnet
 ```
