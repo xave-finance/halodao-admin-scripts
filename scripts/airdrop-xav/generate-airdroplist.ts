@@ -33,8 +33,8 @@ export const generateAirdroplist = async (hre: HardhatRuntimeEnvironment) => {
 
     // 1 - get rnbwContract contract instance
     const rnbwContract = await hre.ethers.getContractAt(
-        'HaloToken',
-        '0xe94b97b6b43639e238c851a7e693f50033efd75c'
+        'HaloHalo',
+        '0x47BE779De87de6580d0548cde80710a93c502405'
     )
 
     // 2 - query all Transfer events from deployment to snapshot block
