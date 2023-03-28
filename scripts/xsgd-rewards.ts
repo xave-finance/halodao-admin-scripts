@@ -40,6 +40,13 @@ export const snapshotXSGDRewards = async (
     const threePercentInSgdWei = threePercent.mul(sgdRateInWei).div(hre.ethers.utils.parseUnits('1', 18)); // convert back from wei
     console.log(`3% APR in USD: ${hre.ethers.utils.formatEther(threePercent)}`);
     console.log(`3% APR in SGD Wei:  ${threePercentInSgdWei.toString()}`);
+    // Formula: Average liquidity for day * daily rate (where daily rate = 3.0% / 365)
+    // @Todo - get the average liquidity for the day
+    // @Todo - make number of days in a month dynamic
+    const dailyAPR = threePercentInSgdWei.div(365);
+    console.log(`Daily APR in SGD Wei: ${dailyAPR.toString()}`);
+    const monthlyAPR = dailyAPR.mul(30);
+    console.log(`Monthly APR in SGD Wei: ${monthlyAPR.toString()}`);
 
     const fxPoolTransferEvent = await fxPoolContract.queryFilter(fxPoolContract.filters.Transfer(), FROM_BLOCK, TO_BLOCK);
 
@@ -72,7 +79,7 @@ export const snapshotXSGDRewards = async (
 
     if (guageLp !== ZERO_ADDRESS) {
         guageBptbalance = await fxPoolContract.balanceOf(guageLp);
-        gaugeRewardAmount = threePercent.mul(guageBptbalance).div(liquidity[0]);;
+        gaugeRewardAmount = monthlyAPR.mul(guageBptbalance).div(liquidity[0]);;
     }
     console.log('Gauge BPT balance', gaugeRewardAmount.toString());
     console.log('Gauge reward amount in USD', gaugeRewardAmount.toString());
@@ -84,8 +91,8 @@ export const snapshotXSGDRewards = async (
         if (balance.gt(0)) {
             bptHoldersTotal = bptHoldersTotal.add(balance);
             // console.log(address, balance.toString());
-            // distribute the threePercent to the bpt holders based on their balances
-            const rewardAmountUsd = threePercent.mul(balance).div(liquidity[0]);
+            // distribute the monthlyAPR to the bpt holders based on their balances
+            const rewardAmountUsd = monthlyAPR.mul(balance).div(liquidity[0]);
             const rewardAmountSgd = rewardAmountUsd.mul(sgdRateInWei).div(hre.ethers.utils.parseUnits('1', 18));
             rewards.push({
                 lpAddress: address,
