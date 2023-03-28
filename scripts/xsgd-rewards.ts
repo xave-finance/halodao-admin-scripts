@@ -27,7 +27,7 @@ export const snapshotXSGDRewards = async (
     const fxPoolLpAddresses: string[] = [];
     const gaugeLpAddresses: string[] = [];
     const lpUniqueAddresses: string[] = [];
-    const lpUniqueBalances: any[] = [];
+    const lpUniquePendingRewards: any[] = [];
     let guageLp = ZERO_ADDRESS;
 
     // get the liquidity of fxPoolContract
@@ -144,19 +144,19 @@ export const snapshotXSGDRewards = async (
         if (index === -1) {
             uniqueRewards.push(reward);
             lpUniqueAddresses.push(reward.lpAddress);
-            lpUniqueBalances.push(reward.rewardAmountSgd);
-            // lpUniqueBalances.push(hre.ethers.BigNumber.from(reward.rewardAmountSgd));
+            lpUniquePendingRewards.push(reward.rewardAmountSgd);
+            // lpUniquePendingRewards.push(hre.ethers.BigNumber.from(reward.rewardAmountSgd));
         } else {
             // convert to big number and add and then convert back to string
             uniqueRewards[index].rewardAmountSgd = hre.ethers.BigNumber.from(uniqueRewards[index].rewardAmountSgd).add(hre.ethers.BigNumber.from(reward.rewardAmountSgd)).toString();
             uniqueRewards[index].rewardAmountUsd = hre.ethers.BigNumber.from(uniqueRewards[index].rewardAmountUsd).add(hre.ethers.BigNumber.from(reward.rewardAmountUsd)).toString();
             lpUniqueAddresses.push(uniqueRewards[index].lpAddress);
-            lpUniqueBalances.push(uniqueRewards[index].rewardAmountSgd);
-            // lpUniqueBalances.push(hre.ethers.BigNumber.from(uniqueRewards[index].rewardAmountSgd));
+            lpUniquePendingRewards.push(uniqueRewards[index].rewardAmountSgd);
+            // lpUniquePendingRewards.push(hre.ethers.BigNumber.from(uniqueRewards[index].rewardAmountSgd));
         }
         // lpUniqueAddresses.push(uniqueRewards[index].lpAddress);
     }
     console.log('uniqueRewards', uniqueRewards);
     console.log('lpUniqueAddresses', lpUniqueAddresses);
-    console.log('lpUniqueBalances', lpUniqueBalances);
+    console.log('lpUniquePendingRewards', lpUniquePendingRewards);
 }
