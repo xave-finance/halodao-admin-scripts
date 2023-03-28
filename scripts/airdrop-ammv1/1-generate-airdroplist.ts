@@ -36,7 +36,7 @@ const verifyAddresses = async () => {
   const [deployer] = await ethers.getSigners()
   const ammRewardsv1 = await ethers.getContractAt(
     'AmmRewards',
-    process.env.AMM_REWARDS_CONTRACT_ADDRESS
+    '0x9cFf4A10b6Fb163a4DF369AaFed9d95838222ca6' //process.env.AMM_REWARDS_CONTRACT_ADDRESS
   )
 
   console.log(`Deployer Address: ${deployer.address}`)
