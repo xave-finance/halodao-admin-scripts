@@ -52,3 +52,8 @@ Example:
 ```
 yarn hardhat v1statistics --curveaddress 0x64DCbDeb83e39f152B7Faf83E5E5673faCA0D42A --name XSGD --decimal 6  --network mainnet
 ```
+
+### Using XSGD Reward Snapshot
+```
+yarn hardhat snapshot-xsgd-rewards --network polygon
+```
