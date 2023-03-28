@@ -11,7 +11,7 @@ interface AirdropList {
     address: string
     balance: string
 }
-
+ 
 export const generateAirdroplist = async (
     hre: HardhatRuntimeEnvironment,
     name: string,

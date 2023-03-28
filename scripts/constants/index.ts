@@ -32,6 +32,13 @@ export interface StatsCurve {
   caller: string
 }
 
+export interface UserInfo {
+  pid: number
+  user: string
+  amount: string
+  rewardDebt: string
+}
+
 // add more here as needed
 export const getStartBlockNumber = (networkName: string) => {
   switch (networkName) {

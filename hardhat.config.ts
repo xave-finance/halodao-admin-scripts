@@ -9,6 +9,7 @@ import '@nomiclabs/hardhat-etherscan'
 import 'hardhat-typechain'
 import { fetchV0Stats } from './scripts/protocol-statistics/fetch-v0-stats'
 import { fetchV1Stats } from './scripts/protocol-statistics/fetch-v1-stats'
+import { fetchLPWithBalance } from './scripts/protocol-statistics/fetch-lp-with-balance'
 import { generateAirdroplist } from './scripts/airdrop-xav/generate-airdroplist'
 
 // You need to export an object to set up your config
@@ -30,6 +31,10 @@ task('v1statistics', 'fetch v1 statistics')
 
 task('v0statistics', 'fetch v0 statistics', async (args, hre) => {
   await fetchV0Stats(hre)
+})
+
+task('lpWithBalance', 'fetch LP with Balance from AMM Rewards', async (args, hre) => {
+  await fetchLPWithBalance(hre)
 })
 
 task('xav-airdrop', 'generate XAV airdrop addresses')
