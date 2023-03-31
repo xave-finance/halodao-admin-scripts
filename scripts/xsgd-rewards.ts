@@ -31,7 +31,7 @@ export const snapshotXSGDRewards = async (
     const sgdRate = await getSGDRate();
     console.log('USD to SGD rate', sgdRate);
 
-    const FROM_BLOCK = await getBlockNumber(epochStartDate);
+    const FROM_BLOCK = await getBlockNumber(epochStartDate, hre.network.name);
     const TO_BLOCK = await deployer.provider?.getBlockNumber();
 
     console.log('FROM_BLOCK', FROM_BLOCK);

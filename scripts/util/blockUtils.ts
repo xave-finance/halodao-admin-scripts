@@ -24,9 +24,9 @@ export const getBlockRangeIteration = (
   }
 }
 
-export const getBlockNumber = async (epochStartDate: string): Promise<number> => {
+export const getBlockNumber = async (epochStartDate: string, network: string): Promise<number> => {
   try {
-    const uri = `https://deep-index.moralis.io/api/v2/dateToBlock?chain=polygon&date=${epochStartDate}`;
+    const uri = `https://deep-index.moralis.io/api/v2/dateToBlock?chain=${network}&date=${epochStartDate}`;
     const response = await axios.get<BlockData>(uri, {
       headers: {
         'X-API-Key': `${MORALIS_API_KEY}`,
