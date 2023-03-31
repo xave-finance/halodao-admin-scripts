@@ -58,7 +58,6 @@ export const snapshotXSGDRewards = async (
     console.log(`3% APR in USD: ${hre.ethers.utils.formatEther(threePercent)}`);
     console.log(`3% APR in SGD Wei:  ${threePercentInSgdWei.toString()}`);
     // Formula: Average liquidity for day * daily rate (where daily rate = 3.0% / 365)
-    // @Todo - get the average liquidity for the day
     // @Todo - make number of days in a month dynamic
     const dailyAPR = threePercentInSgdWei.div(365);
     console.log(`Daily APR in SGD Wei: ${dailyAPR.toString()}`);
