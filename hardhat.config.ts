@@ -32,9 +32,11 @@ task('v0statistics', 'fetch v0 statistics', async (args, hre) => {
   await fetchV0Stats(hre)
 })
 
-task('snapshot-xsgd-rewards', 'Get the snapshot of XSGD Rewards', async (args, hre) => {
-  await snapshotXSGDRewards(hre)
-});
+task('snapshot-xsgd-rewards', 'Get the snapshot of XSGD Rewards')
+  .addParam('startdate', 'Starting block of the epoch')
+  .setAction(async ({ startdate }, hre) => {
+    await snapshotXSGDRewards(hre, startdate)
+  })
 
 const config: HardhatUserConfig = {
   solidity: '0.6.12',

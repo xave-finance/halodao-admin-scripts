@@ -1,27 +1,44 @@
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { rewardsOnlyGaugeABI } from './constants/abi/rewards-only-gauge'
-import { fxPoolABI } from './constants/abi/fxpool'
+import { HardhatRuntimeEnvironment } from 'hardhat/types';
+import { rewardsOnlyGaugeABI } from './constants/abi/rewards-only-gauge';
+import { fxPoolABI } from './constants/abi/fxpool';
 import { getSGDRate } from './util/cmc';
+import { getBlockNumber } from './util/blockUtils';
 import { ZERO_ADDRESS } from './constants';
 import { Rewards } from './constants';
+import * as fs from 'fs';
+import { ExportToCsv } from 'export-to-csv';
+import { matic } from '@halodao/halodao-contract-addresses'
 
 export const snapshotXSGDRewards = async (
-    hre: HardhatRuntimeEnvironment
+    hre: HardhatRuntimeEnvironment,
+    epochStartDate: string
 ) => {
+    // define csv parameters
+    const options = {
+        fieldSeparator: ',',
+        quoteStrings: '"',
+        decimalSeparator: '.',
+        showLabels: true,
+        showTitle: true,
+        title: 'xsgd-rewards-snapshot-from-block',
+        useTextFile: false,
+        useBom: true,
+        useKeysAsHeaders: true
+    };
     const [deployer] = await hre.ethers.getSigners();
     const rewards: Rewards[] = []
     const sgdRateInWei = hre.ethers.utils.parseUnits((await getSGDRate()).toString(), 18);
     const sgdRate = await getSGDRate();
     console.log('USD to SGD rate', sgdRate);
 
-    const FROM_BLOCK = 9193266;
+    const FROM_BLOCK = await getBlockNumber(epochStartDate);
     const TO_BLOCK = await deployer.provider?.getBlockNumber();
 
     console.log('FROM_BLOCK', FROM_BLOCK);
     console.log('TO_BLOCK', TO_BLOCK);
 
-    const fxPoolAddress = '0x726E324c29a1e49309672b244bdC4Ff62A270407';
-    const gaugeAddress = '0x3aC845345fc2d51A3006Ed384055cD5ACde86441';
+    const fxPoolAddress = matic.ammV2.pools.all.LP_XSGD_USDC as string;  //'0x726E324c29a1e49309672b244bdC4Ff62A270407';
+    const gaugeAddress =  '0x3aC845345fc2d51A3006Ed384055cD5ACde86441';
     const fxPoolContract = new hre.ethers.Contract(fxPoolAddress, fxPoolABI, deployer)
     const gaugeContract = new hre.ethers.Contract(gaugeAddress, rewardsOnlyGaugeABI, deployer)
     const fxPoolLpAddresses: string[] = [];
@@ -112,7 +129,7 @@ export const snapshotXSGDRewards = async (
         const args = event.args;
 
         if (args) {
-            const { _from, _to, _value } = args;
+            const { _from, _to } = args;
             // Check if the addresses are already in the array
             if (!gaugeLpAddresses.includes(_from) && _from !== ZERO_ADDRESS) {
                 gaugeLpAddresses.push(_from);
@@ -166,4 +183,9 @@ export const snapshotXSGDRewards = async (
     console.log('uniqueRewards', uniqueRewards);
     console.log('lpUniqueAddresses', lpUniqueAddresses);
     console.log('lpUniquePendingRewards', lpUniquePendingRewards);
+
+    // write csv file
+    const csvExporter = new ExportToCsv(options);
+    const xsgdStats = csvExporter.generateCsv(uniqueRewards, true);
+    fs.writeFileSync(`xsgd-rewards-snapshot-from-block-${FROM_BLOCK}.csv`, xsgdStats);
 }
