@@ -9,6 +9,14 @@ import * as fs from 'fs';
 import { ExportToCsv } from 'export-to-csv';
 import { matic } from '@halodao/halodao-contract-addresses'
 
+const getDaysInMonth = (dateString: string): number => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const lastDay = new Date(year, month, 0).getDate();
+    return lastDay;
+  };
+  
 export const snapshotXSGDRewards = async (
     hre: HardhatRuntimeEnvironment,
     epochStartDate: string
@@ -61,7 +69,9 @@ export const snapshotXSGDRewards = async (
     // @Todo - make number of days in a month dynamic
     const dailyAPR = threePercentInSgdWei.div(365);
     console.log(`Daily APR in SGD Wei: ${dailyAPR.toString()}`);
-    const monthlyAPR = dailyAPR.mul(30);
+    const daysInMonth = getDaysInMonth(epochStartDate);
+    console.log(`Days in month: ${daysInMonth}`);
+    const monthlyAPR = dailyAPR.mul(daysInMonth);
     console.log(`Monthly APR in SGD Wei: ${monthlyAPR.toString()}`);
 
     const fxPoolTransferEvent = await fxPoolContract.queryFilter(fxPoolContract.filters.Transfer(), FROM_BLOCK, TO_BLOCK);
