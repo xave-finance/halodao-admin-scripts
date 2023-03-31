@@ -15,8 +15,17 @@ const getDaysInMonth = (dateString: string): number => {
     const month = date.getMonth() + 1;
     const lastDay = new Date(year, month, 0).getDate();
     return lastDay;
-  };
-  
+};
+
+const getEndDateOfMonth = (dateString: string): string => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = year.toString() + '-' + month.toString() + '-' + lastDay.toString();
+    return endDate;
+};
+
 export const snapshotXSGDRewards = async (
     hre: HardhatRuntimeEnvironment,
     epochStartDate: string
@@ -35,18 +44,18 @@ export const snapshotXSGDRewards = async (
     };
     const [deployer] = await hre.ethers.getSigners();
     const rewards: Rewards[] = []
-    const sgdRateInWei = hre.ethers.utils.parseUnits((await getSGDRate()).toString(), 18);
     const sgdRate = await getSGDRate();
+    const sgdRateInWei = hre.ethers.utils.parseUnits(sgdRate.toString(), 18);
     console.log('USD to SGD rate', sgdRate);
 
     const FROM_BLOCK = await getBlockNumber(epochStartDate, hre.network.name);
-    const TO_BLOCK = await deployer.provider?.getBlockNumber();
+    const TO_BLOCK =  await getBlockNumber(getEndDateOfMonth(epochStartDate), hre.network.name);
 
     console.log('FROM_BLOCK', FROM_BLOCK);
     console.log('TO_BLOCK', TO_BLOCK);
 
     const fxPoolAddress = matic.ammV2.pools.all.LP_XSGD_USDC as string;  //'0x726E324c29a1e49309672b244bdC4Ff62A270407';
-    const gaugeAddress =  '0x3aC845345fc2d51A3006Ed384055cD5ACde86441';
+    const gaugeAddress = '0x3aC845345fc2d51A3006Ed384055cD5ACde86441';
     const fxPoolContract = new hre.ethers.Contract(fxPoolAddress, fxPoolABI, deployer)
     const gaugeContract = new hre.ethers.Contract(gaugeAddress, rewardsOnlyGaugeABI, deployer)
     const fxPoolLpAddresses: string[] = [];
@@ -66,7 +75,6 @@ export const snapshotXSGDRewards = async (
     console.log(`3% APR in USD: ${hre.ethers.utils.formatEther(threePercent)}`);
     console.log(`3% APR in SGD Wei:  ${threePercentInSgdWei.toString()}`);
     // Formula: Average liquidity for day * daily rate (where daily rate = 3.0% / 365)
-    // @Todo - make number of days in a month dynamic
     const dailyAPR = threePercentInSgdWei.div(365);
     console.log(`Daily APR in SGD Wei: ${dailyAPR.toString()}`);
     const daysInMonth = getDaysInMonth(epochStartDate);
