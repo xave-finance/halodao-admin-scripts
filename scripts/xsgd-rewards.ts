@@ -112,7 +112,7 @@ export const snapshotXSGDRewards = async (
     let guageBptbalance = hre.ethers.BigNumber.from(0);
 
     if (guageLp !== ZERO_ADDRESS) {
-        guageBptbalance = await fxPoolContract.balanceOf(guageLp);
+        guageBptbalance = await fxPoolContract.balanceOf(guageLp, { blockTag: TO_BLOCK });
         gaugeRewardAmount = monthlyAPR.mul(guageBptbalance).div(liquidity[0]);;
     }
     console.log('Gauge BPT balance', gaugeRewardAmount.toString());
@@ -121,7 +121,7 @@ export const snapshotXSGDRewards = async (
     // loop through unique addresses and get the balance
     for (let i = 0; i < fxPoolLpAddresses.length; i++) {
         const address = fxPoolLpAddresses[i];
-        const balance = await fxPoolContract.balanceOf(address);
+        const balance = await fxPoolContract.balanceOf(address, { blockTag: TO_BLOCK });
         if (balance.gt(0)) {
             bptHoldersTotal = bptHoldersTotal.add(balance);
             // console.log(address, balance.toString());
@@ -160,7 +160,7 @@ export const snapshotXSGDRewards = async (
     // loop through unique addresses and get the balance
     for (let i = 0; i < gaugeLpAddresses.length; i++) {
         const address = gaugeLpAddresses[i];
-        const balance = await gaugeContract.balanceOf(address);
+        const balance = await gaugeContract.balanceOf(address, { blockTag: TO_BLOCK });
         if (balance > 0) {
             // console.log(address, balance.toString());
             // distribute the gaugeRewardAmount to the gauge bpt holders based on their balances
