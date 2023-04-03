@@ -70,6 +70,7 @@ export const snapshotXSGDRewards = async (
     console.log(`FXPool liquidity USD Wei: ${liquidity[0]}`)
     console.log(`FXPool liquidity SGD Wei: ${liquidityInSgdWei.toString()}`);
 
+    // get the 3% APR of the current liquidity
     const threePercent = liquidity[0].mul(3).div(100);
     const threePercentInSgdWei = threePercent.mul(sgdRateInWei).div(hre.ethers.utils.parseUnits('1', 18)); // convert back from wei
     console.log(`3% APR in USD: ${hre.ethers.utils.formatEther(threePercent)}`);
