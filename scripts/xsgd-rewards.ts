@@ -148,13 +148,28 @@ export const snapshotXSGDRewards = async (
 
   // 3. Calculate total balances of LPs and stakers
   const bptBalances: BptBalances[] = []
+  const fxPoolBalancePromises: Promise<any>[] = []
+  const gaugeBalancePromises: Promise<any>[] = []
+
   // loop through addresses and get the balance
   for (let i = 0; i < LpAddresses.length; i++) {
     const address = LpAddresses[i]
-    const [fxPoolBalance, gaugeBalance] = await Promise.all([
-      fxPoolContract.balanceOf(address, { blockTag: TO_BLOCK }),
+    fxPoolBalancePromises.push(
+      fxPoolContract.balanceOf(address, { blockTag: TO_BLOCK })
+    )
+    gaugeBalancePromises.push(
       gaugeContract.balanceOf(address, { blockTag: TO_BLOCK })
-    ])
+    )
+  }
+
+  const fxPoolBalances = await Promise.all(fxPoolBalancePromises)
+  const gaugeBalances = await Promise.all(gaugeBalancePromises)
+
+  for (let i = 0; i < fxPoolBalances.length; i++) {
+    const address = LpAddresses[i]
+    const fxPoolBalance = fxPoolBalances[i]
+    const gaugeBalance = gaugeBalances[i]
+
     if (fxPoolBalance > 0) {
       bptHoldersTotal = bptHoldersTotal.add(fxPoolBalance)
       console.log(
@@ -164,7 +179,7 @@ export const snapshotXSGDRewards = async (
     if (gaugeBalance > 0) {
       bptHoldersTotal = bptHoldersTotal.add(gaugeBalance)
       console.log(
-        `LP address: ${address} - BPT balance: ${gaugeBalance.toString()}`
+        `LP address: ${address} - GaugeToken balance: ${gaugeBalance.toString()}`
       )
     }
     if (fxPoolBalance > 0 || gaugeBalance > 0) {
@@ -203,9 +218,9 @@ export const snapshotXSGDRewards = async (
 
     rewards.push({
       lpAddress: bptBalances[i].lpAddress,
-      bptBalance: bptBalances[i].bptBalance.toString(),
-      rewardAmountSgd: rewardAmountSgd.toString(),
-      rewardAmountUsd: rewardAmountUsd.toString()
+      bptBalance: bptBalances[i].bptBalance,
+      rewardAmountSgd: rewardAmountSgd,
+      rewardAmountUsd: rewardAmountUsd
     })
 
     console.log(
@@ -225,48 +240,46 @@ export const snapshotXSGDRewards = async (
   }
 
   // loop through rewards and find duplicate lpAddress and add the rewardAmountSgd and rewardAmountUsd
-  const uniqueRewards: Rewards[] = []
+  const exportRewards: {
+    address: string
+    balance: string
+    share: string
+    reward: string
+  }[] = []
+
+  const totalBPTBalance = Number(hre.ethers.utils.formatEther(bptHoldersTotal))
   let totalRewards = hre.ethers.BigNumber.from(0)
 
   for (let i = 0; i < rewards.length; i++) {
     const reward = rewards[i]
-    const index = uniqueRewards.findIndex(
-      (item: any) => item.lpAddress === reward.lpAddress
-    )
-    if (index === -1) {
-      uniqueRewards.push(reward)
-      lpUniqueAddresses.push(reward.lpAddress)
-      lpUniquePendingRewards.push(reward.rewardAmountSgd)
-    } else {
-      // convert to big number and add and then convert back to string
-      uniqueRewards[index].rewardAmountSgd = hre.ethers.BigNumber.from(
-        uniqueRewards[index].rewardAmountSgd
-      )
-        .add(hre.ethers.BigNumber.from(reward.rewardAmountSgd))
-        .toString()
-      uniqueRewards[index].rewardAmountUsd = hre.ethers.BigNumber.from(
-        uniqueRewards[index].rewardAmountUsd
-      )
-        .add(hre.ethers.BigNumber.from(reward.rewardAmountUsd))
-        .toString()
-      lpUniqueAddresses.push(uniqueRewards[index].lpAddress)
-      lpUniquePendingRewards.push(uniqueRewards[index].rewardAmountSgd)
-    }
-    uniqueRewards[i].rewardAmountSgd = hre.ethers.utils.formatEther(
-      hre.ethers.BigNumber.from(uniqueRewards[i].rewardAmountSgd)
-    )
-    totalRewards = totalRewards.add(
-      hre.ethers.BigNumber.from(reward.rewardAmountSgd)
-    )
+
+    const balance = Number(hre.ethers.utils.formatEther(reward.bptBalance))
+    const percentage = (balance / totalBPTBalance) * 100
+
+    exportRewards.push({
+      address: reward.lpAddress,
+      balance: `${balance.toFixed(2)} BPT`,
+      share: `${percentage.toFixed(4)} %`,
+      reward: `${Number(
+        hre.ethers.utils.formatEther(reward.rewardAmountSgd)
+      ).toFixed(2)} XSGD`
+    })
+
+    lpUniqueAddresses.push(reward.lpAddress)
+    lpUniquePendingRewards.push(reward.rewardAmountSgd)
+    totalRewards = totalRewards.add(reward.rewardAmountSgd)
   }
-  console.log('uniqueRewards', uniqueRewards)
+  console.log('exportRewards', exportRewards)
   console.log('lpUniqueAddresses', lpUniqueAddresses)
-  console.log('lpUniquePendingRewards', lpUniquePendingRewards)
+  console.log(
+    'lpUniquePendingRewards',
+    lpUniquePendingRewards.map(r => r.toString())
+  )
   console.log('totalRewards in SGD Wei', totalRewards.toString())
 
   // write csv file
   const csvExporter = new ExportToCsv(options)
-  const xsgdStats = csvExporter.generateCsv(uniqueRewards, true)
+  const xsgdStats = csvExporter.generateCsv(exportRewards, true)
   fs.writeFileSync(
     `xsgd-rewards-snapshot-from-block-${FROM_BLOCK}.csv`,
     xsgdStats
