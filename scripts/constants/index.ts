@@ -1,4 +1,7 @@
+import { BigNumber } from 'ethers'
+
 export const SWAP_FEE_V1 = 0.0005
+export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 export const BPool: { xsgdusdc: string; thkdusdc: string } = {
   xsgdusdc: '0xd6fe343d66c797c8c392d59768b86ffa2cd8d602',
@@ -20,6 +23,18 @@ export interface StatsCurve {
   feesOut: string
   tradeAmount: string
   caller: string
+}
+
+export interface Rewards {
+  lpAddress: string
+  bptBalance: BigNumber
+  rewardAmountSgd: BigNumber
+  rewardAmountUsd: BigNumber
+}
+
+export interface BptBalances {
+  lpAddress: string
+  bptBalance: BigNumber
 }
 
 // add more here as needed
