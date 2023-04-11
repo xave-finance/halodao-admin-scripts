@@ -7,7 +7,7 @@ import { ZERO_ADDRESS } from './constants';
 import { Rewards, BptBalances } from './constants';
 import * as fs from 'fs';
 import { ExportToCsv } from 'export-to-csv';
-import { matic } from '@halodao/halodao-contract-addresses'
+import { haloContractAddresses } from './util/halo-contract-address-network';
 
 const getDaysInMonth = (dateString: string): number => {
     const date = new Date(dateString);
@@ -56,8 +56,10 @@ export const snapshotXSGDRewards = async (
     const daysInMonth = getDaysInMonth(epochStartDate);
     console.log(`Days in month: ${daysInMonth}`);
 
-    const fxPoolAddress = matic.ammV2.pools.all.LP_XSGD_USDC as string;  //'0x726E324c29a1e49309672b244bdC4Ff62A270407';
-    const gaugeAddress = '0x3aC845345fc2d51A3006Ed384055cD5ACde86441';
+    const fxPoolAddress = haloContractAddresses(hre.network.name).ammV2.pools.all.LP_XSGD_USDC as string;  //'0x726E324c29a1e49309672b244bdC4Ff62A270407';
+    const gaugeAddress = haloContractAddresses(hre.network.name).ammV2.pools.enabled[0].gauges?.l2?.rewardsOnly as string; //'0x3aC845345fc2d51A3006Ed384055cD5ACde86441';
+    console.log(`fxPoolAddress: ${fxPoolAddress}`);
+    console.log(`gaugeAddress: ${gaugeAddress}`);
     const fxPoolContract = new hre.ethers.Contract(fxPoolAddress, fxPoolABI, deployer)
     const gaugeContract = new hre.ethers.Contract(gaugeAddress, rewardsOnlyGaugeABI, deployer)
     const lpUniqueAddresses: string[] = [];
@@ -82,10 +84,10 @@ export const snapshotXSGDRewards = async (
         if (args) {
             const { from, to } = args;
             // Check if the addresses are already in the array
-            if (!LpAddresses.includes(from) && from !== ZERO_ADDRESS && from !== gaugeAddress) {
+            if (!LpAddresses.includes(from) && from !== ZERO_ADDRESS && from.toLowerCase() !== gaugeAddress.toLowerCase()) {
                 LpAddresses.push(from);
             }
-            if (!LpAddresses.includes(to) && to !== ZERO_ADDRESS && to !== gaugeAddress) {
+            if (!LpAddresses.includes(to) && to !== ZERO_ADDRESS && to.toLowerCase() !== gaugeAddress.toLowerCase()) {
                 LpAddresses.push(to);
             }
         }
@@ -115,23 +117,24 @@ export const snapshotXSGDRewards = async (
     // loop through addresses and get the balance
     for (let i = 0; i < LpAddresses.length; i++) {
         const address = LpAddresses[i];
-        const fxPoolBalance = await fxPoolContract.balanceOf(address, { blockTag: TO_BLOCK });
-        const gaugeBalance = await gaugeContract.balanceOf(address, { blockTag: TO_BLOCK });
-
+        const [fxPoolBalance, gaugeBalance] = await Promise.all([
+            fxPoolContract.balanceOf(address, { blockTag: TO_BLOCK }),
+            gaugeContract.balanceOf(address, { blockTag: TO_BLOCK })
+        ]);
         if (fxPoolBalance > 0) {
             bptHoldersTotal = bptHoldersTotal.add(fxPoolBalance);
             console.log(`LP address: ${address} - BPT balance: ${fxPoolBalance.toString()}`);
         }
-        
         if (gaugeBalance > 0) {
             bptHoldersTotal = bptHoldersTotal.add(gaugeBalance);
             console.log(`LP address: ${address} - BPT balance: ${gaugeBalance.toString()}`);
         }
-
-        bptBalances.push({
-            lpAddress: address,
-            bptBalance: fxPoolBalance.add(gaugeBalance),
-        })
+        if (fxPoolBalance > 0 || gaugeBalance > 0) {
+            bptBalances.push({
+                lpAddress: address,
+                bptBalance: fxPoolBalance.add(gaugeBalance),
+            })
+        }
     }
 
     console.log(`Total Balance of BPT holders: ${bptHoldersTotal.toString()}`);
@@ -140,17 +143,19 @@ export const snapshotXSGDRewards = async (
     const threePercentInSgdWei = threePercent.mul(sgdRateInWei).div(hre.ethers.utils.parseUnits('1', 18)); // convert back from wei
     console.log(`3% APR in USD: ${hre.ethers.utils.formatEther(threePercent)}`);
     console.log(`3% APR in SGD Wei:  ${threePercentInSgdWei.toString()}`);
-    
-    const dailyAPR = threePercentInSgdWei.div(365);
+
+    const dailyAPR = threePercent.div(365);
+    const dailyAPRInSgdWei = threePercentInSgdWei.div(365);
     console.log(`Daily APR in SGD Wei: ${dailyAPR.toString()}`);
     const monthlyAPR = dailyAPR.mul(daysInMonth);
-    console.log(`Monthly APR in SGD Wei: ${monthlyAPR.toString()}`);
+    const monthlyAPRInSgdWei = dailyAPRInSgdWei.mul(daysInMonth);
+    console.log(`Monthly APR in SGD Wei: ${monthlyAPRInSgdWei.toString()}`);
 
     // 4. Calculate rewards for each rewardee
     const rewards: Rewards[] = []
-    for (let i = 0; i < bptBalances.length; i++) { 
-        const rewardAmountSgd = monthlyAPR.mul(bptBalances[i].bptBalance).div(bptHoldersTotal);
-        const rewardAmountUsd = rewardAmountUsd.div(sgdRateInWei).mul(hre.ethers.utils.parseUnits('1', 18));
+    for (let i = 0; i < bptBalances.length; i++) {
+        const rewardAmountUsd = monthlyAPR.mul(bptBalances[i].bptBalance).div(bptHoldersTotal);
+        const rewardAmountSgd = rewardAmountUsd.mul(sgdRateInWei).div(hre.ethers.utils.parseUnits('1', 18));
         rewards.push({
             lpAddress: bptBalances[i].lpAddress,
             bptBalance: bptBalances[i].bptBalance.toString(),
