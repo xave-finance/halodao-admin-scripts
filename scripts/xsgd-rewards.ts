@@ -149,8 +149,8 @@ export const snapshotXSGDRewards = async (
     // 4. Calculate rewards for each rewardee
     const rewards: Rewards[] = []
     for (let i = 0; i < bptBalances.length; i++) { 
-        const rewardAmountUsd = monthlyAPR.mul(bptBalances[i].bptBalance).div(bptHoldersTotal);
-        const rewardAmountSgd = rewardAmountUsd.mul(sgdRateInWei).div(hre.ethers.utils.parseUnits('1', 18));
+        const rewardAmountSgd = monthlyAPR.mul(bptBalances[i].bptBalance).div(bptHoldersTotal);
+        const rewardAmountUsd = rewardAmountUsd.div(sgdRateInWei).mul(hre.ethers.utils.parseUnits('1', 18));
         rewards.push({
             lpAddress: bptBalances[i].lpAddress,
             bptBalance: bptBalances[i].bptBalance.toString(),
