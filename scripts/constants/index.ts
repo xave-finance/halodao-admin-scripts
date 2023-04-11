@@ -30,6 +30,11 @@ export interface Rewards {
   rewardAmountUsd: string
 }
 
+export interface BptBalances {
+  lpAddress: string
+  bptBalance: string
+}
+
 // add more here as needed
 export const getStartBlockNumber = (networkName: string) => {
   switch (networkName) {
