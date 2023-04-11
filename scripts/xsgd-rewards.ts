@@ -115,17 +115,22 @@ export const snapshotXSGDRewards = async (
     // loop through addresses and get the balance
     for (let i = 0; i < LpAddresses.length; i++) {
         const address = LpAddresses[i];
-        let balance = await fxPoolContract.balanceOf(address, { blockTag: TO_BLOCK });
-        if (balance.gt(0)) {
-            bptHoldersTotal = bptHoldersTotal.add(balance);
+        const fxPoolBalance = await fxPoolContract.balanceOf(address, { blockTag: TO_BLOCK });
+        const gaugeBalance = await gaugeContract.balanceOf(address, { blockTag: TO_BLOCK });
+
+        if (fxPoolBalance > 0) {
+            bptHoldersTotal = bptHoldersTotal.add(fxPoolBalance);
+            console.log(`LP address: ${address} - BPT balance: ${fxPoolBalance.toString()}`);
         }
-        balance = await gaugeContract.balanceOf(address, { blockTag: TO_BLOCK });
-        if (balance.gt(0)) {
-            bptHoldersTotal = bptHoldersTotal.add(balance);
+        
+        if (gaugeBalance > 0) {
+            bptHoldersTotal = bptHoldersTotal.add(gaugeBalance);
+            console.log(`LP address: ${address} - BPT balance: ${gaugeBalance.toString()}`);
         }
+
         bptBalances.push({
             lpAddress: address,
-            bptBalance: balance.toString(),
+            bptBalance: fxPoolBalance.add(gaugeBalance),
         })
     }
 
