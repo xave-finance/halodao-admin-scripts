@@ -269,7 +269,7 @@ export const snapshotXSGDRewards = async (
     const parts = rewardInString.split('.')
     const rewardInStringTrimmed =
       parts[1].length > 6
-        ? `${parts[0]}.${parts[1].substring(0, 6)}`
+        ? `${parts[0]}.${parts[1].substring(0, 5)}`
         : `${parts[0]}.${parts[1]}`
     const rewardInSzabo = hre.ethers.utils.parseUnits(rewardInStringTrimmed, 6)
 
