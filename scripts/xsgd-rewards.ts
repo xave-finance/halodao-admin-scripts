@@ -265,8 +265,16 @@ export const snapshotXSGDRewards = async (
       ).toFixed(2)} XSGD`
     })
 
+    const rewardInString = hre.ethers.utils.formatEther(reward.rewardAmountSgd)
+    const parts = rewardInString.split('.')
+    const rewardInStringTrimmed =
+      parts[1].length > 6
+        ? `${parts[0]}.${parts[1].substring(0, 6)}`
+        : `${parts[0]}.${parts[1]}`
+    const rewardInSzabo = hre.ethers.utils.parseUnits(rewardInStringTrimmed, 6)
+
     lpUniqueAddresses.push(reward.lpAddress)
-    lpUniquePendingRewards.push(reward.rewardAmountSgd)
+    lpUniquePendingRewards.push(rewardInSzabo)
     totalRewards = totalRewards.add(reward.rewardAmountSgd)
   }
   console.log('exportRewards', exportRewards)
