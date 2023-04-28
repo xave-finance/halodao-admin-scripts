@@ -112,7 +112,7 @@ const main = async () => {
   console.log('averageLiquidity:', averageLiquidity, 'USD')
 
   const XSGD_RATE = 1.33 // 1 USD = 1.33 SGD
-  const totalRewardsXSGD = averageLiquidity * 0.03 * XSGD_RATE // 3% of liquidity
+  const totalRewardsXSGD = ((averageLiquidity * 0.03) / 12) * XSGD_RATE // 3% of liquidity
   console.log(
     'totalRewards:',
     totalRewardsXSGD,
