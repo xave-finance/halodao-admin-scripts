@@ -2,12 +2,22 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { rewardsOnlyGaugeABI } from './constants/abi/rewards-only-gauge'
 import { fxPoolABI } from './constants/abi/fxpool'
 import { getSGDRate } from './util/cmc'
-import { getBlockNumber } from './util/blockUtils'
+import {
+  getBlockNumber,
+  getNativeBalancesForAddresses
+} from './util/blockUtils'
 import { ZERO_ADDRESS } from './constants'
-import { Rewards, BptBalances } from './constants'
+import {
+  Rewards,
+  BptBalances,
+  BptBalances2,
+  MonthlyLpRewards,
+  MonthlyLpRewards2
+} from './constants'
 import * as fs from 'fs'
 import { ExportToCsv } from 'export-to-csv'
 import { haloContractAddresses } from './util/halo-contract-address-network'
+import { ethers } from 'ethers'
 
 const getDaysInMonth = (dateString: string): number => {
   const date = new Date(dateString)
@@ -25,6 +35,28 @@ const getEndDateOfMonth = (dateString: string): string => {
   const endDate =
     year.toString() + '-' + month.toString() + '-' + lastDay.toString()
   return endDate
+}
+
+function getUnixTimestampsForMonth(dateString: string): number[] {
+  const timestamps = []
+
+  // Create a Date object for the first day of the month
+  const currentDate = new Date(dateString)
+  const currentMonth = currentDate.getMonth() + 1
+  console.log('currentMonth', currentMonth)
+  console.log('currentDate', currentDate)
+
+  // Iterate through the month and generate a timestamp for each day
+  while (currentDate.getMonth() === currentMonth - 1) {
+    timestamps.push(Math.floor(currentDate.getTime() / 1000))
+    currentDate.setDate(currentDate.getDate() + 1)
+  }
+
+  return timestamps
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 export const snapshotXSGDRewards = async (
@@ -146,140 +178,165 @@ export const snapshotXSGDRewards = async (
     }
   }
 
-  // 3. Calculate total balances of LPs and stakers
-  const bptBalances: BptBalances[] = []
-  const fxPoolBalancePromises: Promise<any>[] = []
-  const gaugeBalancePromises: Promise<any>[] = []
+  // ------------------
 
-  // loop through addresses and get the balance
-  for (let i = 0; i < LpAddresses.length; i++) {
-    const address = LpAddresses[i]
-    fxPoolBalancePromises.push(
-      fxPoolContract.balanceOf(address, { blockTag: TO_BLOCK })
-    )
-    gaugeBalancePromises.push(
-      gaugeContract.balanceOf(address, { blockTag: TO_BLOCK })
-    )
+  // Delay between requests (in milliseconds)
+  const requestDelay = 300
+  const bptBalances2: BptBalances2[] = []
+  const monthlyLpRewards: MonthlyLpRewards[] = []
+  const monthlyLpRewards2: MonthlyLpRewards2[] = []
+
+  // Function to get balanceOf
+  async function getBalanceOf(
+    contract: ethers.Contract,
+    address: string,
+    blockNumber: number
+  ): Promise<ethers.BigNumber> {
+    await sleep(requestDelay)
+    return await contract.balanceOf(address, { blockTag: blockNumber })
   }
 
-  const fxPoolBalances = await Promise.all(fxPoolBalancePromises)
-  const gaugeBalances = await Promise.all(gaugeBalancePromises)
+  const processBlock = async (block: number) => {
+    await sleep(requestDelay)
+    const fxPoolPromises = LpAddresses.map(async address => {
+      const fxPoolBalance = await getBalanceOf(fxPoolContract, address, block)
+      const gaugeBalance = await getBalanceOf(gaugeContract, address, block)
+      let bptBalance = hre.ethers.BigNumber.from(0)
 
-  for (let i = 0; i < fxPoolBalances.length; i++) {
-    const address = LpAddresses[i]
-    const fxPoolBalance = fxPoolBalances[i]
-    const gaugeBalance = gaugeBalances[i]
+      if (fxPoolBalance.gt(0)) {
+        bptBalance = fxPoolBalance
+      }
 
-    if (fxPoolBalance > 0) {
-      bptHoldersTotal = bptHoldersTotal.add(fxPoolBalance)
-      console.log(
-        `LP address: ${address} - BPT balance: ${fxPoolBalance.toString()}`
-      )
-    }
-    if (gaugeBalance > 0) {
-      bptHoldersTotal = bptHoldersTotal.add(gaugeBalance)
-      console.log(
-        `LP address: ${address} - GaugeToken balance: ${gaugeBalance.toString()}`
-      )
-    }
-    if (fxPoolBalance > 0 || gaugeBalance > 0) {
-      bptBalances.push({
-        lpAddress: address,
-        bptBalance: fxPoolBalance.add(gaugeBalance)
-      })
-    }
-  }
+      if (gaugeBalance.gt(0)) {
+        bptBalance = bptBalance.add(gaugeBalance)
+      }
 
-  console.log(`Total Balance of BPT holders: ${bptHoldersTotal.toString()}`)
-  // get the 3% APR of the relative liquidity
-  const threePercent = bptHoldersTotal.mul(3).div(100)
-  const threePercentInSgdWei = threePercent
-    .mul(sgdRateInWei)
-    .div(hre.ethers.utils.parseUnits('1', 18)) // convert back from wei
-  console.log(`3% APR in USD: ${hre.ethers.utils.formatEther(threePercent)}`)
-  console.log(`3% APR in SGD Wei:  ${threePercentInSgdWei.toString()}`)
-
-  const dailyAPR = threePercent.div(365)
-  const dailyAPRInSgdWei = threePercentInSgdWei.div(365)
-  console.log(`Daily APR in SGD Wei: ${dailyAPR.toString()}`)
-  const monthlyAPR = dailyAPR.mul(daysInMonth)
-  const monthlyAPRInSgdWei = dailyAPRInSgdWei.mul(daysInMonth)
-  console.log(`Monthly APR in SGD Wei: ${monthlyAPRInSgdWei.toString()}`)
-
-  // 4. Calculate rewards for each rewardee
-  const rewards: Rewards[] = []
-  for (let i = 0; i < bptBalances.length; i++) {
-    const rewardAmountUsd = monthlyAPR
-      .mul(bptBalances[i].bptBalance)
-      .div(bptHoldersTotal)
-    const rewardAmountSgd = rewardAmountUsd
-      .mul(sgdRateInWei)
-      .div(hre.ethers.utils.parseUnits('1', 18))
-
-    rewards.push({
-      lpAddress: bptBalances[i].lpAddress,
-      bptBalance: bptBalances[i].bptBalance,
-      rewardAmountSgd: rewardAmountSgd,
-      rewardAmountUsd: rewardAmountUsd
+      if (bptBalance.gt(0)) {
+        const xsgdRewardsinUsdWei = bptBalance.mul(3).div(100).div(365)
+        bptBalances2.push({
+          lpAddress: address,
+          bptBalance: bptBalance,
+          formattedBptBalance: hre.ethers.utils.formatEther(bptBalance),
+          xsgdRewardsInUsdWei: xsgdRewardsinUsdWei,
+          blockNumber: block
+        })
+      }
     })
 
-    console.log(
-      `Reward amount in USD to send to ${
-        bptBalances[i].lpAddress
-      } - ${rewardAmountUsd} -  ${hre.ethers.utils.formatEther(
-        rewardAmountUsd
-      )}`
-    )
-    console.log(
-      `Reward amount in SGD to send to ${
-        bptBalances[i].lpAddress
-      } - ${rewardAmountSgd} -  ${hre.ethers.utils.formatEther(
-        rewardAmountSgd
-      )}`
-    )
+    await Promise.all(fxPoolPromises)
   }
 
-  // loop through rewards and find duplicate lpAddress and add the rewardAmountSgd and rewardAmountUsd
-  const exportRewards: {
-    address: string
-    balance: string
-    share: string
-    reward: string
-  }[] = []
+  // Calculate blocks for the end of each day
 
-  const totalBPTBalance = Number(hre.ethers.utils.formatEther(bptHoldersTotal))
-  let totalRewards = hre.ethers.BigNumber.from(0)
+  const endOfDayTimestamps = getUnixTimestampsForMonth(epochStartDate)
+  console.log('End of day timestamps: ', endOfDayTimestamps)
 
-  for (let i = 0; i < rewards.length; i++) {
-    const reward = rewards[i]
+  let endOfDayBlocks: any[] = []
 
-    const balance = Number(hre.ethers.utils.formatEther(reward.bptBalance))
+  for (const unixTimeStamp of endOfDayTimestamps) {
+    const blockNumber = await getBlockNumber(
+      unixTimeStamp.toString(),
+      hre.network.name
+    )
+    endOfDayBlocks.push(blockNumber)
+  }
+
+  console.log('End of day blocks: ', endOfDayBlocks)
+  // Process end of day blocks
+  for (const block of endOfDayBlocks) {
+    await processBlock(block)
+  }
+
+  console.log('bptBalances2', bptBalances2)
+
+  console.log('Finished processing balances.')
+
+  let totalAveLiquidity = hre.ethers.BigNumber.from(0)
+  let totalAveBptBalance = hre.ethers.BigNumber.from(0)
+  let totalXsgdRewards = hre.ethers.BigNumber.from(0)
+
+  LpAddresses.forEach(address => {
+    const lpBalances = bptBalances2.filter(
+      bptBalances2 => bptBalances2.lpAddress === address
+    )
+    if (lpBalances.length > 0) {
+      let monthlyBptBalance = hre.ethers.BigNumber.from(0)
+      let aveMonthlyBptBalance = hre.ethers.BigNumber.from(0)
+      let monthlyRewardAmount = hre.ethers.BigNumber.from(0)
+
+      lpBalances.forEach(lpBalance => {
+        monthlyBptBalance = monthlyBptBalance.add(lpBalance.bptBalance)
+        monthlyRewardAmount = monthlyRewardAmount.add(
+          lpBalance.xsgdRewardsInUsdWei
+        )
+      })
+      aveMonthlyBptBalance = monthlyBptBalance.div(daysInMonth)
+      monthlyRewardAmount = monthlyRewardAmount
+        .mul(sgdRateInWei)
+        .div(hre.ethers.utils.parseUnits('1', 18))
+
+      const rewardInString = hre.ethers.utils.formatEther(monthlyRewardAmount)
+      const parts = rewardInString.split('.')
+      const rewardInStringTrimmed =
+        parts[1].length > 6
+          ? `${parts[0]}.${parts[1].substring(0, 6)}`
+          : `${parts[0]}.${parts[1]}`
+      const rewardInSzabo = hre.ethers.utils.parseUnits(
+        rewardInStringTrimmed,
+        6
+      )
+
+      monthlyLpRewards.push({
+        lpAddress: address,
+        aveBptBalance: aveMonthlyBptBalance,
+        formattedAveBptBalance:
+          hre.ethers.utils.formatEther(aveMonthlyBptBalance),
+        xsgdRewardAmount: rewardInString
+      })
+
+      totalAveLiquidity = totalAveLiquidity.add(aveMonthlyBptBalance)
+      totalAveBptBalance = totalAveBptBalance.add(monthlyBptBalance)
+      totalXsgdRewards = totalXsgdRewards.add(monthlyRewardAmount)
+    }
+  })
+
+  monthlyLpRewards.forEach(monthlyLpReward => {
+    const totalBPTBalance = Number(
+      hre.ethers.utils.formatEther(totalAveBptBalance.div(daysInMonth))
+    )
+
+    const balance = Number(
+      hre.ethers.utils.formatEther(monthlyLpReward.aveBptBalance)
+    )
     const percentage = (balance / totalBPTBalance) * 100
 
-    exportRewards.push({
-      address: reward.lpAddress,
-      balance: `${balance.toFixed(2)} BPT`,
-      share: `${percentage.toFixed(4)} %`,
-      reward: `${Number(
-        hre.ethers.utils.formatEther(reward.rewardAmountSgd)
-      ).toFixed(2)} XSGD`
+    monthlyLpRewards2.push({
+      lpAddress: monthlyLpReward.lpAddress,
+      aveBptBalance: monthlyLpReward.aveBptBalance.toString(),
+      formattedAveBptBalance: monthlyLpReward.formattedAveBptBalance,
+      xsgdRewardAmount: monthlyLpReward.xsgdRewardAmount,
+      precentShare: `${percentage.toFixed(2)} %`
     })
+  })
 
-    lpUniqueAddresses.push(reward.lpAddress)
-    lpUniquePendingRewards.push(reward.rewardAmountSgd)
-    totalRewards = totalRewards.add(reward.rewardAmountSgd)
-  }
-  console.log('exportRewards', exportRewards)
-  console.log('lpUniqueAddresses', lpUniqueAddresses)
+  console.log('monthlyLpRewards', monthlyLpRewards2)
+
   console.log(
-    'lpUniquePendingRewards',
-    lpUniquePendingRewards.map(r => r.toString())
+    'totalAveLiquidity',
+    hre.ethers.utils.formatEther(totalAveLiquidity)
   )
-  console.log('totalRewards in SGD Wei', totalRewards.toString())
+  console.log(
+    'totalAveBptBalance',
+    hre.ethers.utils.formatEther(totalAveBptBalance.div(daysInMonth))
+  )
+  console.log(
+    'totalXsgdRewards',
+    hre.ethers.utils.formatEther(totalXsgdRewards)
+  )
 
-  // write csv file
+  // // write csv file
   const csvExporter = new ExportToCsv(options)
-  const xsgdStats = csvExporter.generateCsv(exportRewards, true)
+  const xsgdStats = csvExporter.generateCsv(monthlyLpRewards2, true)
   fs.writeFileSync(
     `xsgd-rewards-snapshot-from-block-${FROM_BLOCK}.csv`,
     xsgdStats

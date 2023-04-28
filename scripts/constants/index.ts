@@ -37,6 +37,31 @@ export interface BptBalances {
   bptBalance: BigNumber
 }
 
+export interface BptBalances2 {
+  lpAddress: string
+  bptBalance: BigNumber
+  formattedBptBalance: string
+  xsgdRewardsInUsdWei: BigNumber
+  // formattedXsgdRewardsInUsd: string
+  // formattedXsgdRewardsInSgd: string
+  blockNumber: number
+}
+
+export interface MonthlyLpRewards {
+  lpAddress: string
+  aveBptBalance: BigNumber
+  formattedAveBptBalance: string
+  xsgdRewardAmount: string
+}
+
+export interface MonthlyLpRewards2 {
+  lpAddress: string
+  aveBptBalance: string
+  formattedAveBptBalance: string
+  xsgdRewardAmount: string
+  precentShare: string
+}
+
 // add more here as needed
 export const getStartBlockNumber = (networkName: string) => {
   switch (networkName) {
