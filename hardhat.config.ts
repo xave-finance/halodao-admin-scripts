@@ -9,7 +9,7 @@ import '@nomiclabs/hardhat-etherscan'
 import 'hardhat-typechain'
 import { fetchV0Stats } from './scripts/protocol-statistics/fetch-v0-stats'
 import { fetchV1Stats } from './scripts/protocol-statistics/fetch-v1-stats'
-import { snapshotXSGDRewards } from './scripts/xsgd-rewards'
+import { snapshotXSGDRewards } from './scripts/xsgd-rewards-v2'
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
