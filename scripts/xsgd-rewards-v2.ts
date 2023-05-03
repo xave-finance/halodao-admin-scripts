@@ -98,6 +98,7 @@ export const snapshotXSGDRewards = async (
 
   const rate = await getSGDRate()
   const xsgdRate = parseEther(`${rate}`)
+  console.log(`RATE: 1 XSGD = ${formatEther(xsgdRate)} USD`)
 
   for (const block of blocks) {
     const getBPTBalancePromises: any[] = []
