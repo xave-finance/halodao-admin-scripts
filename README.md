@@ -28,3 +28,32 @@ This repository aims to run scripts to interact with HALODao contracts in admin 
   await fooContract.deploy()
 
 ```
+
+### Using Protocol Statistics
+
+#### V0
+
+- From [HDEV-467](https://halodao.atlassian.net/browse/HDEV-467), xsgd is only available. Run the task using the command below:
+
+```
+yarn hardhat v0statistics  --network mainnet
+```
+
+#### V1
+
+- To generate a csv file input the command below:
+
+```
+yarn hardhat v1statistics --curveaddress {address of the curve} --name {token name for the filenames} --decimal {token decimal places that is not usdc} --network mainnet
+```
+
+Example:
+
+```
+yarn hardhat v1statistics --curveaddress 0x64DCbDeb83e39f152B7Faf83E5E5673faCA0D42A --name XSGD --decimal 6  --network mainnet
+```
+
+### Using XSGD Reward Snapshot
+```
+yarn hardhat snapshot-xsgd-rewards --network polygon
+```

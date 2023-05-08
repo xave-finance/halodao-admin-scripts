@@ -1,22 +1,15 @@
 require('dotenv').config()
 
-import { task, HardhatUserConfig } from 'hardhat/config'
+import { HardhatUserConfig, task } from 'hardhat/config'
 import '@nomiclabs/hardhat-waffle'
 import 'hardhat-gas-reporter'
 import '@nomiclabs/hardhat-ethers'
 import 'solidity-coverage'
 import '@nomiclabs/hardhat-etherscan'
 import 'hardhat-typechain'
-
-// This is a sample Hardhat task. To learn how to create your own go to
-// https://hardhat.org/guides/create-task.html
-task('accounts', 'Prints the list of accounts', async (args, hre) => {
-  const accounts = await hre.ethers.getSigners()
-
-  for (const account of accounts) {
-    console.log(account.address)
-  }
-})
+import { fetchV0Stats } from './scripts/protocol-statistics/fetch-v0-stats'
+import { fetchV1Stats } from './scripts/protocol-statistics/fetch-v1-stats'
+import { snapshotXSGDRewards } from './scripts/xsgd-rewards-v2'
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -26,9 +19,42 @@ const MNEMONIC_SEED = process.env.MNEMONIC_SEED || ''
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || ''
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY || ''
 
+// Tasks
+task('v1statistics', 'fetch v1 statistics')
+  .addParam('curveaddress', 'Curve address')
+  .addParam('name', 'Name of the currency')
+  .addParam('decimal', 'Currency decimal')
+  .setAction(async ({ curveaddress, name, decimal }, hre) => {
+    await fetchV1Stats(hre, curveaddress, name, decimal)
+  })
+
+task('v0statistics', 'fetch v0 statistics', async (args, hre) => {
+  await fetchV0Stats(hre)
+})
+
+task('snapshot-xsgd-rewards', 'Get the snapshot of XSGD Rewards')
+  .addParam('startdate', 'Starting block of the epoch')
+  .setAction(async ({ startdate }, hre) => {
+    await snapshotXSGDRewards(hre, startdate)
+  })
+
 const config: HardhatUserConfig = {
   solidity: '0.6.12',
   networks: {
+    arbitrum: {
+      url: `https://arbitrum-mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
+      chainId: 42161,
+      accounts: {
+        mnemonic: MNEMONIC_SEED
+      }
+    },
+    polygon: {
+      url: `https://polygon-mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
+      chainId: 137,
+      accounts: {
+        mnemonic: MNEMONIC_SEED
+      }
+    },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
       chainId: 1,
