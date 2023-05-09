@@ -1,6 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { fxPoolABI } from './constants/abi/fxpool'
 import { rewardsOnlyGaugeABI } from './constants/abi/rewards-only-gauge'
+import { mockERC20ABI } from './constants/abi/mock-erc20'
 import { ZERO_ADDRESS } from './constants'
 import { BigNumber } from 'ethers'
 import {
@@ -15,6 +16,7 @@ import * as fs from 'fs'
 
 const POOL_ADDRESS = '0x726E324c29a1e49309672b244bdC4Ff62A270407'
 const GAUGE_ADDRESS = '0x3aC845345fc2d51A3006Ed384055cD5ACde86441'
+const XSGD_TOKEN = '0xDC3326e71D45186F113a2F448984CA0e8D201995'
 const ONE_ETH = parseEther('1')
 
 export const snapshotXSGDRewards = async (
@@ -32,7 +34,11 @@ export const snapshotXSGDRewards = async (
     rewardsOnlyGaugeABI,
     deployer
   )
-
+  const xsgdTokenContract = new hre.ethers.Contract(
+    XSGD_TOKEN,
+    mockERC20ABI,
+    deployer
+  )
   /**
    * STEP 1: Get list of all LPs
    */
@@ -117,7 +123,7 @@ export const snapshotXSGDRewards = async (
       )
     })
 
-    const [blockBPTBalances, blockStakedBPTBalances, [blockLiquidity]] =
+    const [blockBPTBalances, blockStakedBPTBalances, blockLiquidity] =
       await Promise.all([
         Promise.all(getBPTBalancePromises),
         Promise.all(getStakedBPTBalancePromises),
@@ -126,10 +132,22 @@ export const snapshotXSGDRewards = async (
         })
       ])
 
+    const xsgdLiquidityIndex = 0
+
     console.log('============================================')
     console.log('BLOCK:', block)
-    console.log('blockLiquidity:', formatEther(blockLiquidity))
-    const blockReward = (blockLiquidity as BigNumber).mul(3).div(100).div(365)
+    console.log('blockLiquidity:', formatEther(blockLiquidity.total_))
+    console.log(
+      'blockLiquidity XSGD Composition:',
+      formatEther(blockLiquidity.individual_[xsgdLiquidityIndex])
+    )
+
+    const blockReward = (
+      blockLiquidity.individual_[xsgdLiquidityIndex] as BigNumber
+    )
+      .mul(3)
+      .div(100)
+      .div(365)
     console.log('blockReward:', formatEther(blockReward))
 
     let blockTotalBPT = BigNumber.from(0)
