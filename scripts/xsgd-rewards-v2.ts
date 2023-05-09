@@ -34,11 +34,6 @@ export const snapshotXSGDRewards = async (
     rewardsOnlyGaugeABI,
     deployer
   )
-  const xsgdTokenContract = new hre.ethers.Contract(
-    XSGD_TOKEN,
-    mockERC20ABI,
-    deployer
-  )
   /**
    * STEP 1: Get list of all LPs
    */
