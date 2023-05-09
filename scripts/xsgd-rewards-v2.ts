@@ -16,7 +16,6 @@ import * as fs from 'fs'
 
 const POOL_ADDRESS = '0x726E324c29a1e49309672b244bdC4Ff62A270407'
 const GAUGE_ADDRESS = '0x3aC845345fc2d51A3006Ed384055cD5ACde86441'
-const XSGD_TOKEN = '0xDC3326e71D45186F113a2F448984CA0e8D201995'
 const ONE_ETH = parseEther('1')
 
 export const snapshotXSGDRewards = async (
