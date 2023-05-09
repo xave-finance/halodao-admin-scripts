@@ -1,7 +1,6 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { fxPoolABI } from './constants/abi/fxpool'
 import { rewardsOnlyGaugeABI } from './constants/abi/rewards-only-gauge'
-import { mockERC20ABI } from './constants/abi/mock-erc20'
 import { ZERO_ADDRESS } from './constants'
 import { BigNumber } from 'ethers'
 import {
