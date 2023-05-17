@@ -32,7 +32,6 @@ export const snapshotXSGDRewards = async (
     rewardsOnlyGaugeABI,
     deployer
   )
-
   /**
    * STEP 1: Get list of all LPs
    */
@@ -117,7 +116,7 @@ export const snapshotXSGDRewards = async (
       )
     })
 
-    const [blockBPTBalances, blockStakedBPTBalances, [blockLiquidity]] =
+    const [blockBPTBalances, blockStakedBPTBalances, blockLiquidity] =
       await Promise.all([
         Promise.all(getBPTBalancePromises),
         Promise.all(getStakedBPTBalancePromises),
@@ -126,10 +125,22 @@ export const snapshotXSGDRewards = async (
         })
       ])
 
+    const xsgdLiquidityIndex = 0
+
     console.log('============================================')
     console.log('BLOCK:', block)
-    console.log('blockLiquidity:', formatEther(blockLiquidity))
-    const blockReward = (blockLiquidity as BigNumber).mul(3).div(100).div(365)
+    console.log('blockLiquidity:', formatEther(blockLiquidity.total_))
+    console.log(
+      'blockLiquidity XSGD Composition:',
+      formatEther(blockLiquidity.individual_[xsgdLiquidityIndex])
+    )
+
+    const blockReward = (
+      blockLiquidity.individual_[xsgdLiquidityIndex] as BigNumber
+    )
+      .mul(3)
+      .div(100)
+      .div(365)
     console.log('blockReward:', formatEther(blockReward))
 
     let blockTotalBPT = BigNumber.from(0)
