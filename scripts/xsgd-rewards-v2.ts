@@ -102,6 +102,18 @@ export const snapshotXSGDRewards = async (
     }[]
   } = {}
 
+  const formattedDailyRewards: {
+    block: number
+    blockLiquidity: string
+    xsgdCompostion: string
+    blockReward: string
+    blockTotalBPT: string
+    address: string
+    balance: string
+    share: string
+    reward: string
+  }[] = []
+
   const rate = await getSGDRate()
   const xsgdRate = parseEther(`${rate}`)
   console.log(`RATE: 1 XSGD = ${formatEther(xsgdRate)} USD`)
@@ -194,6 +206,20 @@ export const snapshotXSGDRewards = async (
           share: share,
           reward: reward
         })
+
+        formattedDailyRewards.push({
+          block: block,
+          blockLiquidity: formatEther(blockLiquidity.total_),
+          xsgdCompostion: formatEther(
+            blockLiquidity.individual_[xsgdLiquidityIndex]
+          ),
+          blockReward: formatEther(blockReward),
+          blockTotalBPT: formatEther(blockTotalBPT),
+          address: lp,
+          balance: `${Number(formatEther(userBPT)).toFixed(2)} BPT`,
+          share: `${(Number(formatEther(share)) * 100).toFixed(4)} %`,
+          reward: `${Number(formatEther(reward)).toFixed(2)} SGD`
+        })
       }
     })
     console.log('============================================')
@@ -256,6 +282,12 @@ export const snapshotXSGDRewards = async (
   fs.writeFileSync(
     `xsgd-rewards-snapshot-from-block-${blocks[0]}.csv`,
     xsgdStats
+  )
+
+  const xsgdDailyStats = csvExporter.generateCsv(formattedDailyRewards, true)
+  fs.writeFileSync(
+    `xsgd-daily-rewards-snapshot-from-block-${blocks[0]}.csv`,
+    xsgdDailyStats
   )
 
   console.log('============================================')
