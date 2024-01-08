@@ -24,6 +24,7 @@
     "solidity-coverage": "^0.7.16"
   },
   "dependencies": {
+    "@halodao/halodao-contract-addresses": "1.0.60",
     "@openzeppelin/contracts": "^3.4.1",
     "@typechain/ethers-v5": "^6.0.4",
     "@types/mocha": "^8.2.2",

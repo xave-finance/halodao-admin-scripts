@@ -12,10 +12,12 @@ import {
 import { getSGDRate } from './util/cmc'
 import { ExportToCsv } from 'export-to-csv'
 import * as fs from 'fs'
+import { matic } from '@halodao/halodao-contract-addresses'
 
-const POOL_ADDRESS = '0x726E324c29a1e49309672b244bdC4Ff62A270407'
-const GAUGE_ADDRESS = '0x3aC845345fc2d51A3006Ed384055cD5ACde86441'
-const GAUGE_ADDRESS_V2 = '0xA7165E1E3dEfe55DAdA5C4289268d57faBA6dAd2'
+const POOL_ADDRESS = matic.ammV2.pools.all.LP_XSGD_USDC || ZERO_ADDRESS
+const GAUGE_ADDRESS =
+  matic.ammV2.pools.enabled.find(p => p.address === POOL_ADDRESS)?.gauges
+    ?.child || ZERO_ADDRESS
 const ONE_ETH = parseEther('1')
 
 export const snapshotXSGDRewards = async (
@@ -33,11 +35,7 @@ export const snapshotXSGDRewards = async (
     rewardsOnlyGaugeABI,
     deployer
   )
-  const GaugeContractV2 = new hre.ethers.Contract(
-    GAUGE_ADDRESS_V2,
-    rewardsOnlyGaugeABI, // this works even if ABI doesn't fully match since we only need `balanceOf()`
-    deployer
-  )
+
   /**
    * STEP 1: Get list of all LPs
    */
@@ -49,8 +47,7 @@ export const snapshotXSGDRewards = async (
 
   const possibleLPs: string[] = []
   const blacklisted = [
-    GAUGE_ADDRESS, // XSGD-USDC Polygon Gauge (RewardsOnlyGauge)
-    GAUGE_ADDRESS_V2, // new XSGD-USDC Polygon Gauge (ChildLiquidityGauge)
+    GAUGE_ADDRESS, // XSGD-USDC Polygon Gauge (ChildLiquidityGauge)
     ZERO_ADDRESS // transfer to 0x0 means BPT is burnt
   ]
   events.map(e => {
@@ -121,7 +118,6 @@ export const snapshotXSGDRewards = async (
   for (const block of blocks) {
     const getBPTBalancePromises: any[] = []
     const getStakedBPTBalancePromises: any[] = []
-    const getStakedBPTV2BalancePromises: any[] = []
 
     possibleLPs.map(lp => {
       getBPTBalancePromises.push(
@@ -134,26 +130,16 @@ export const snapshotXSGDRewards = async (
           blockTag: block
         })
       )
-      getStakedBPTV2BalancePromises.push(
-        GaugeContractV2.balanceOf(lp, {
-          blockTag: block
-        })
-      )
     })
 
-    const [
-      blockBPTBalances,
-      blockStakedBPTBalances,
-      blockStakedBPTV2Balances,
-      blockLiquidity
-    ] = await Promise.all([
-      Promise.all(getBPTBalancePromises),
-      Promise.all(getStakedBPTBalancePromises),
-      Promise.all(getStakedBPTV2BalancePromises),
-      FXPoolContract.liquidity({
-        blockTag: block
-      })
-    ])
+    const [blockBPTBalances, blockStakedBPTBalances, blockLiquidity] =
+      await Promise.all([
+        Promise.all(getBPTBalancePromises),
+        Promise.all(getStakedBPTBalancePromises),
+        FXPoolContract.liquidity({
+          blockTag: block
+        })
+      ])
 
     const xsgdLiquidityIndex = 0
 
@@ -178,16 +164,15 @@ export const snapshotXSGDRewards = async (
       blockTotalBPT = blockTotalBPT
         .add(blockBPTBalances[index])
         .add(blockStakedBPTBalances[index])
-        .add(blockStakedBPTV2Balances[index])
     })
     console.log('blockTotalBPT:', formatEther(blockTotalBPT))
 
     userRewards[block] = []
 
     possibleLPs.forEach((lp, index) => {
-      const userBPT = (blockBPTBalances[index] as BigNumber)
-        .add(blockStakedBPTBalances[index] as BigNumber)
-        .add(blockStakedBPTV2Balances[index] as BigNumber)
+      const userBPT = (blockBPTBalances[index] as BigNumber).add(
+        blockStakedBPTBalances[index] as BigNumber
+      )
 
       if (userBPT.gt(0)) {
         const share = userBPT.mul(ONE_ETH).div(blockTotalBPT)
