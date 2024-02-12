@@ -42,7 +42,7 @@ export const snapshotXSGDRewards = async (
 
   const events = await FXPoolContract.queryFilter(
     FXPoolContract.filters.Transfer(), // BPT is minted | transferred | burnt
-    32054797 // block when XSGD-USDC pool was deployed on Polygon
+    50320439 // block when XSGD-USDC pool was deployed on Polygon
   )
 
   const possibleLPs: string[] = []
