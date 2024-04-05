@@ -1,6 +1,11 @@
 import axios from 'axios'
 const CMC_API_KEY = process.env.CMC_API_KEY || ''
 
+if (!CMC_API_KEY) {
+  // fail early
+  throw new Error('CMC_API_KEY is not set')
+}
+
 interface QuoteData {
   data: {
     [key: string]: {
