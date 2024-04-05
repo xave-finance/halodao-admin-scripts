@@ -6,6 +6,13 @@ This repository aims to run scripts to interact with HALODao contracts in admin 
 
 - ammRewardsV1.0 airdrop script + helpers
 
+### Setup
+
+```sh
+# ensure you're using the correct node version
+nvm use
+```
+
 ### How to write scripts
 
 ```
@@ -54,6 +61,7 @@ yarn hardhat v1statistics --curveaddress 0x64DCbDeb83e39f152B7Faf83E5E5673faCA0D
 ```
 
 ### Using XSGD Reward Snapshot
+
 ```
 yarn hardhat snapshot-xsgd-rewards --network polygon
 ```
