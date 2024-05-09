@@ -84,9 +84,15 @@ export const snapshotXSGDRewards = async (
     i++
   }
 
-  const jsonPromises = (await Promise.all(fetchBlockPromises)).map((r: any) =>
-    r.json()
+  // Add 1 second delay for every API call to prevent too many requests error
+  const jsonPromises = fetchBlockPromises.map(async (p, i) => {
+    await new Promise(resolve => setTimeout(resolve, 5000))
+    return await p.then((r: any) => r.json())
+  }
   )
+  // const jsonPromises = (await Promise.all(fetchBlockPromises)).map((r: any) =>
+  //   r.json()
+  // )
   const blocks = (await Promise.all(jsonPromises)).map((r: any) => r.height)
 
   // Step 2.2 Compute for LP rewards for each block

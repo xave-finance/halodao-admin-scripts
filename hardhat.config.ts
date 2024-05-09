@@ -15,6 +15,7 @@ import { snapshotXSGDRewards } from './scripts/xsgd-rewards-v2'
 // Go to https://hardhat.org/config/ to learn more
 
 const INFURA_PROJECT_ID = process.env.INFURA_PROJECT_ID || ''
+const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY
 const MNEMONIC_SEED = process.env.MNEMONIC_SEED || ''
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || ''
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY || ''
@@ -49,7 +50,8 @@ const config: HardhatUserConfig = {
       }
     },
     polygon: {
-      url: `https://polygon-mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
+      // url: `https://polygon-mainnet.infura.io/v3/${INFURA_PROJECT_ID}`,
+      url: `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
       chainId: 137,
       accounts: {
         mnemonic: MNEMONIC_SEED
