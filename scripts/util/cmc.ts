@@ -1,11 +1,6 @@
 import axios from 'axios'
 const CMC_API_KEY = process.env.CMC_API_KEY || ''
 
-if (!CMC_API_KEY) {
-  // fail early
-  throw new Error('CMC_API_KEY is not set')
-}
-
 interface QuoteData {
   data: {
     [key: string]: {
@@ -19,6 +14,11 @@ interface QuoteData {
 }
 
 export const getSGDRate = async (): Promise<number> => {
+  if (!CMC_API_KEY) {
+    // fail early
+    throw new Error('CMC_API_KEY is not set')
+  }
+
   try {
     const response = await axios.get<QuoteData>(
       'https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?id=2808',

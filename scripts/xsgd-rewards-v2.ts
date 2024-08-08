@@ -31,6 +31,8 @@ export const snapshotXSGDRewards = async (
   hre: HardhatRuntimeEnvironment,
   epochDate: string // YYYY-MM format, e.g. 2023-03 for March 2023
 ) => {
+  // Get the current XSGD rate
+  const rate = await getSGDRate()
   const [deployer] = await hre.ethers.getSigners()
   const FXPoolContract = new hre.ethers.Contract(
     POOL_ADDRESS,
@@ -119,7 +121,6 @@ export const snapshotXSGDRewards = async (
     reward: string
   }[] = []
 
-  const rate = await getSGDRate()
   const xsgdRate = parseEther(`${rate}`)
   console.log(`RATE: 1 XSGD = ${formatEther(xsgdRate)} USD`)
 
