@@ -1,4 +1,5 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import pThrottle from 'p-throttle'
 import { fxPoolABI } from './constants/abi/fxpool'
 import { rewardsOnlyGaugeABI } from './constants/abi/rewards-only-gauge'
 import { ZERO_ADDRESS } from './constants'
@@ -14,6 +15,12 @@ import { ExportToCsv } from 'export-to-csv'
 import * as fs from 'fs'
 import { matic } from '@halodao/halodao-contract-addresses'
 
+// at most 2 requests per second to the Alchemy / Infura endpoints
+const throttle = pThrottle({
+  limit: 2,
+  interval: 1000
+})
+
 const POOL_ADDRESS = matic.ammV2.pools.all.LP_XSGD_USDC || ZERO_ADDRESS
 const GAUGE_ADDRESS =
   matic.ammV2.pools.enabled.find(p => p.address === POOL_ADDRESS)?.gauges
@@ -24,6 +31,8 @@ export const snapshotXSGDRewards = async (
   hre: HardhatRuntimeEnvironment,
   epochDate: string // YYYY-MM format, e.g. 2023-03 for March 2023
 ) => {
+  // Get the current XSGD rate
+  const rate = await getSGDRate()
   const [deployer] = await hre.ethers.getSigners()
   const FXPoolContract = new hre.ethers.Contract(
     POOL_ADDRESS,
@@ -73,14 +82,15 @@ export const snapshotXSGDRewards = async (
   let timestamp = epochStartDate.getTime() / 1000
   const lastTimestamp = epochEndDate.getTime() / 1000
   const fetchBlockPromises: any[] = []
+  const fetchBlockThrottled = throttle((_timestamp: number) => {
+    return fetch(`https://coins.llama.fi/block/polygon/${_timestamp}`)
+  })
 
   while (timestamp < lastTimestamp) {
     const day = new Date(epochStartDate.getTime())
     day.setDate(epochStartDate.getDate() + i)
     timestamp = day.getTime() / 1000
-    fetchBlockPromises.push(
-      fetch(`https://coins.llama.fi/block/polygon/${timestamp}`)
-    )
+    fetchBlockPromises.push(fetchBlockThrottled(timestamp))
     i++
   }
 
@@ -111,7 +121,6 @@ export const snapshotXSGDRewards = async (
     reward: string
   }[] = []
 
-  const rate = await getSGDRate()
   const xsgdRate = parseEther(`${rate}`)
   console.log(`RATE: 1 XSGD = ${formatEther(xsgdRate)} USD`)
 
@@ -119,17 +128,20 @@ export const snapshotXSGDRewards = async (
     const getBPTBalancePromises: any[] = []
     const getStakedBPTBalancePromises: any[] = []
 
+    const fxpoolBalanceThrottled = throttle((_lp, _block) => {
+      return FXPoolContract.balanceOf(_lp, {
+        blockTag: _block
+      })
+    })
+    const gaugeBalanceThrottled = throttle((_lp, _block) => {
+      return GaugeContract.balanceOf(_lp, {
+        blockTag: _block
+      })
+    })
+
     possibleLPs.map(lp => {
-      getBPTBalancePromises.push(
-        FXPoolContract.balanceOf(lp, {
-          blockTag: block
-        })
-      )
-      getStakedBPTBalancePromises.push(
-        GaugeContract.balanceOf(lp, {
-          blockTag: block
-        })
-      )
+      getBPTBalancePromises.push(fxpoolBalanceThrottled(lp, block))
+      getStakedBPTBalancePromises.push(gaugeBalanceThrottled(lp, block))
     })
 
     const [blockBPTBalances, blockStakedBPTBalances, blockLiquidity] =
